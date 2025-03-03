@@ -1,0 +1,29 @@
+.custom-file-upload {
+    display: flex;
+    align-items: center;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    overflow: hidden;
+    width: fit-content;
+}
+
+.file-upload-label {
+    background-color: #f8f9fa;
+    padding: 10px 15px;
+    cursor: pointer;
+    border-right: 1px solid #ddd;
+    font-size: 14px;
+    font-weight: bold;
+}
+
+.file-upload-input {
+    display: none;
+}
+
+#file-name {
+    padding: 10px 15px;
+    background-color: #eee;
+    flex-grow: 1;
+    font-size: 14px;
+    color: #333;
+}
