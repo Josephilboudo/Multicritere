@@ -16,11 +16,13 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import include, path
-from .views import home, importer_csv
+from .views import home, element, ressource, critere
 
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('', home, name="home"),
+    path('element/', element, name="element"),
+    path('ressource/', ressource, name="ressource"),
+    path('critere/', critere, name="critere"),
     path('auth/', include('authentification.urls')),
-    path('importer-csv/', importer_csv, name='importer_csv'),
 ]
