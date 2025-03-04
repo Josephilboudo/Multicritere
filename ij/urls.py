@@ -16,7 +16,7 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import include, path
-from .views import home, element, ressource, critere
+from .views import home, element, ressource, critere, element_create, element_update, element_delete, ressource_create, ressource_delete, ressource_update
 
 urlpatterns = [
     path('admin/', admin.site.urls),
@@ -25,4 +25,10 @@ urlpatterns = [
     path('ressource/', ressource, name="ressource"),
     path('critere/', critere, name="critere"),
     path('auth/', include('authentification.urls')),
+    path('element/create/', element_create, name='element_create'),
+    path('element/update/<int:id>/', element_update, name='element_update'),
+    path('element/delete/<int:id>/', element_delete, name='element_delete'),
+    path('ressource/create/', ressource_create, name='ressource_create'),
+    path('ressource/update/<int:id>/', ressource_update, name='ressource_update'),
+    path('ressource/delete/<int:id>/', ressource_delete, name='ressource_delete'),
 ]

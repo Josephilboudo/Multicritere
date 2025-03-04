@@ -1,201 +1,13 @@
 {%load static%}<!DOCTYPE html>
 <html lang="en">
 
-<head>
-  <!-- Required meta tags -->
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-  <title>Skydash Admin</title>
-  <!-- plugins:css -->
-  <link rel="stylesheet" href="{% static 'vendors/feather/feather.css' %}">
-  <link rel="stylesheet" href="{% static 'vendors/ti-icons/css/themify-icons.css' %}">
-  <link rel="stylesheet" href="{% static 'vendors/css/vendor.bundle.base.css' %}">
-  <!-- endinject -->
-  <!-- Plugin css for this page -->
-  <link rel="stylesheet" href="{% static 'vendors/datatables.net-bs4/dataTables.bootstrap4.css' %}">
-  <link rel="stylesheet" href="{% static 'vendors/ti-icons/css/themify-icons.css' %}">
-  <link rel="stylesheet" type="{% static 'text/css" href="js/select.dataTables.min.css' %}">
-  <!-- End plugin css for this page -->
-  <!-- inject:css -->
-  <link rel="stylesheet" href="{% static 'css/vertical-layout-light/style.css' %}">
-  <link rel="stylesheet" href="{% static 'css/style.css' %}">
-  <!-- endinject -->
-  <link rel="shortcut icon" href="{% static 'images/favicon.png' %}" />
-</head>
+{%include 'head.html'%}
 <body>
   <div class="container-scroller">
     {%include 'nav.html'%}
     <!-- partial -->
     <div class="container-fluid page-body-wrapper">
       <!-- partial:partials/_settings-panel.html -->
-      <div class="theme-setting-wrapper">
-        <div id="settings-trigger"><i class="ti-settings"></i></div>
-        <div id="theme-settings" class="settings-panel">
-          <i class="settings-close ti-close"></i>
-          <p class="settings-heading">SIDEBAR SKINS</p>
-          <div class="sidebar-bg-options selected" id="sidebar-light-theme"><div class="img-ss rounded-circle bg-light border mr-3"></div>Light</div>
-          <div class="sidebar-bg-options" id="sidebar-dark-theme"><div class="img-ss rounded-circle bg-dark border mr-3"></div>Dark</div>
-          <p class="settings-heading mt-2">HEADER SKINS</p>
-          <div class="color-tiles mx-0 px-4">
-            <div class="tiles success"></div>
-            <div class="tiles warning"></div>
-            <div class="tiles danger"></div>
-            <div class="tiles info"></div>
-            <div class="tiles dark"></div>
-            <div class="tiles default"></div>
-          </div>
-        </div>
-      </div>
-      <div id="right-sidebar" class="settings-panel">
-        <i class="settings-close ti-close"></i>
-        <ul class="nav nav-tabs border-top" id="setting-panel" role="tablist">
-          <li class="nav-item">
-            <a class="nav-link active" id="todo-tab" data-toggle="tab" href="#todo-section" role="tab" aria-controls="todo-section" aria-expanded="true">TO DO LIST</a>
-          </li>
-          <li class="nav-item">
-            <a class="nav-link" id="chats-tab" data-toggle="tab" href="#chats-section" role="tab" aria-controls="chats-section">CHATS</a>
-          </li>
-        </ul>
-        <div class="tab-content" id="setting-content">
-          <div class="tab-pane fade show active scroll-wrapper" id="todo-section" role="tabpanel" aria-labelledby="todo-section">
-            <div class="add-items d-flex px-3 mb-0">
-              <form class="form w-100">
-                <div class="form-group d-flex">
-                  <input type="text" class="form-control todo-list-input" placeholder="Add To-do">
-                  <button type="submit" class="add btn btn-primary todo-list-add-btn" id="add-task">Add</button>
-                </div>
-              </form>
-            </div>
-            <div class="list-wrapper px-3">
-              <ul class="d-flex flex-column-reverse todo-list">
-                <li>
-                  <div class="form-check">
-                    <label class="form-check-label">
-                      <input class="checkbox" type="checkbox">
-                      Team review meeting at 3.00 PM
-                    </label>
-                  </div>
-                  <i class="remove ti-close"></i>
-                </li>
-                <li>
-                  <div class="form-check">
-                    <label class="form-check-label">
-                      <input class="checkbox" type="checkbox">
-                      Prepare for presentation
-                    </label>
-                  </div>
-                  <i class="remove ti-close"></i>
-                </li>
-                <li>
-                  <div class="form-check">
-                    <label class="form-check-label">
-                      <input class="checkbox" type="checkbox">
-                      Resolve all the low priority tickets due today
-                    </label>
-                  </div>
-                  <i class="remove ti-close"></i>
-                </li>
-                <li class="completed">
-                  <div class="form-check">
-                    <label class="form-check-label">
-                      <input class="checkbox" type="checkbox" checked>
-                      Schedule meeting for next week
-                    </label>
-                  </div>
-                  <i class="remove ti-close"></i>
-                </li>
-                <li class="completed">
-                  <div class="form-check">
-                    <label class="form-check-label">
-                      <input class="checkbox" type="checkbox" checked>
-                      Project review
-                    </label>
-                  </div>
-                  <i class="remove ti-close"></i>
-                </li>
-              </ul>
-            </div>
-            <h4 class="px-3 text-muted mt-5 font-weight-light mb-0">Events</h4>
-            <div class="events pt-4 px-3">
-              <div class="wrapper d-flex mb-2">
-                <i class="ti-control-record text-primary mr-2"></i>
-                <span>Feb 11 2018</span>
-              </div>
-              <p class="mb-0 font-weight-thin text-gray">Creating component page build a js</p>
-              <p class="text-gray mb-0">The total number of sessions</p>
-            </div>
-            <div class="events pt-4 px-3">
-              <div class="wrapper d-flex mb-2">
-                <i class="ti-control-record text-primary mr-2"></i>
-                <span>Feb 7 2018</span>
-              </div>
-              <p class="mb-0 font-weight-thin text-gray">Meeting with Alisa</p>
-              <p class="text-gray mb-0 ">Call Sarah Graves</p>
-            </div>
-          </div>
-          <!-- To do section tab ends -->
-          <div class="tab-pane fade" id="chats-section" role="tabpanel" aria-labelledby="chats-section">
-            <div class="d-flex align-items-center justify-content-between border-bottom">
-              <p class="settings-heading border-top-0 mb-3 pl-3 pt-0 border-bottom-0 pb-0">Friends</p>
-              <small class="settings-heading border-top-0 mb-3 pt-0 border-bottom-0 pb-0 pr-3 font-weight-normal">See All</small>
-            </div>
-            <ul class="chat-list">
-              <li class="list active">
-                <div class="profile"><img src="{% static 'images/faces/face1.jpg' %}" alt="image"><span class="online"></span></div>
-                <div class="info">
-                  <p>Thomas Douglas</p>
-                  <p>Available</p>
-                </div>
-                <small class="text-muted my-auto">19 min</small>
-              </li>
-              <li class="list">
-                <div class="profile"><img src="{% static 'images/faces/face2.jpg' %}" alt="image"><span class="offline"></span></div>
-                <div class="info">
-                  <div class="wrapper d-flex">
-                    <p>Catherine</p>
-                  </div>
-                  <p>Away</p>
-                </div>
-                <div class="badge badge-success badge-pill my-auto mx-2">4</div>
-                <small class="text-muted my-auto">23 min</small>
-              </li>
-              <li class="list">
-                <div class="profile"><img src="{% static 'images/faces/face3.jpg' %}" alt="image"><span class="online"></span></div>
-                <div class="info">
-                  <p>Daniel Russell</p>
-                  <p>Available</p>
-                </div>
-                <small class="text-muted my-auto">14 min</small>
-              </li>
-              <li class="list">
-                <div class="profile"><img src="{% static 'images/faces/face4.jpg' %}" alt="image"><span class="offline"></span></div>
-                <div class="info">
-                  <p>James Richardson</p>
-                  <p>Away</p>
-                </div>
-                <small class="text-muted my-auto">2 min</small>
-              </li>
-              <li class="list">
-                <div class="profile"><img src="images/faces/face5.jpg" alt="image"><span class="online"></span></div>
-                <div class="info">
-                  <p>Madeline Kennedy</p>
-                  <p>Available</p>
-                </div>
-                <small class="text-muted my-auto">5 min</small>
-              </li>
-              <li class="list">
-                <div class="profile"><img src="{% static 'images/faces/face6.jpg' %}" alt="image"><span class="online"></span></div>
-                <div class="info">
-                  <p>Sarah Graves</p>
-                  <p>Available</p>
-                </div>
-                <small class="text-muted my-auto">47 min</small>
-              </li>
-            </ul>
-          </div>
-          <!-- chat tab ends -->
-        </div>
-      </div>
       <!-- partial -->
       <!-- partial:partials/_sidebar.html -->
       {%include 'sidebar.html'%}
@@ -206,7 +18,7 @@
             <div class="col-md-12 grid-margin">
               <div class="row">
                 <div class="col-12 col-xl-8 mb-4 mb-xl-0">
-                  <h3 class="font-weight-bold">Welcome Aamir</h3>
+                  <h3 class="font-weight-bold">Element</h3>
                   <h6 class="font-weight-normal mb-0">All systems are running smoothly! You have <span class="text-primary">3 unread alerts!</span></h6>
                 </div>
                 <div class="col-12 col-xl-4">
@@ -459,49 +271,87 @@
             </div>
           </div>
           <div class="row">
-            <div class="col-md-12 grid-margin stretch-card">
-                <div class="card">
-                    <div class="card-body">
-                        <p class="card-title">Liste des Solutions</p>
-                        <div class="row">
-                            <div class="col-12">
-                                <div class="table-responsive">
-                                    <table id="example" class="display expandable-table" style="width:100%">
-                                        <thead>
-                                            <tr>
-                                                <th>ID Solution</th>
-                                                <th>Statut</th>
-                                                <th>Couplages</th>
-                                                <th>Objectifs</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            {% for solution in solutions %}
-                                            <tr>
-                                                <td>{{ solution.idSolution }}</td>
-                                                <td>{{ solution.statut }}</td>
-                                                <td>
-                                                    {% for couplage in solution.couplages.all %}
-                                                        {{ couplage }}{% if not forloop.last %}, {% endif %}
-                                                    {% endfor %}
-                                                </td>
-                                                <td>
-                                                    {% for objectif in solution.solution.all %}
-                                                        {{ objectif }}{% if not forloop.last %}, {% endif %}
-                                                    {% endfor %}
-                                                </td>
-                                            </tr>
-                                            {% endfor %}
-                                        </tbody>
-                                    </table>
-                                </div>
-                            </div>
+    <div class="col-md-12 grid-margin stretch-card">
+        <div class="card">
+            <div class="card-body">
+                <p class="card-title">Liste des elements</p>
+                <div class="row">
+                    <div class="col-12">
+                        <!-- Bouton pour ouvrir la modal d'ajout -->
+    <button class="btn btn-primary mb-3" data-bs-toggle="modal" data-bs-target="#elementModal">
+        <i class="fas fa-plus"></i> Ajouter un Élément
+    </button>
+                        <div class="table-responsive">
+                            <table class="display expandable-table table table-striped table-bordered" style="width:100%">
+                                <thead>
+                                    <tr>
+                                        <th>Code</th>
+                                        <th>Nom</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="element-list">
+                                            <tbody id="element-list">
+            {% for element in elements %}
+            <tr data-id="{{ element.id }}">
+                <td>{{ element.codeElement }}</td>
+                <td>{{ element.nom }}</td>
+                <td>
+                    <button class="btn btn-warning btn-sm edit" data-id="{{ element.id }}" data-bs-toggle="modal" data-bs-target="#elementModal">
+                        <i class="fas fa-edit"></i> Modifier
+                    </button>
+                    <button class="btn btn-danger btn-sm delete" data-id="{{ element.id }}">
+                        <i class="fas fa-trash"></i> Supprimer
+                    </button>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+                                </tbody>
+                            </table>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
-        
+    </div>
+</div>
+
+<!-- Modal pour Ajouter/Modifier -->
+<div class="modal fade" id="elementModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Ajouter un Élément</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="element-form">
+                    <input type="hidden" id="element-id">
+                    <div class="mb-3">
+                        <label for="codeElement" class="form-label">Code Élément</label>
+                        <input type="text" class="form-control" id="codeElement" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="nom" class="form-label">Nom</label>
+                        <input type="text" class="form-control" id="nom" required>
+                    </div>
+                    <button type="submit" class="btn btn-success">Enregistrer</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Toast Notifications -->
+<div class="toast-container position-fixed top-0 end-0 p-3">
+    <div id="toastMessage" class="toast align-items-center text-white bg-success border-0" role="alert">
+        <div class="d-flex">
+            <div class="toast-body"></div>
+            <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+        </div>
+    </div>
+</div>
           
         <!-- content-wrapper ends -->
         <!-- partial:partials/_footer.html -->
@@ -521,30 +371,114 @@
     <!-- page-body-wrapper ends -->
   </div>
   <!-- container-scroller -->
-
-  <!-- plugins:js -->
-  <script src="{% static 'vendors/js/vendor.bundle.base.js' %}"></script>
-  <!-- endinject -->
-  <!-- Plugin js for this page -->
-  <script src="{% static 'vendors/chart.js/Chart.min.js' %}"></script>
-  <script src="{% static 'vendors/datatables.net/jquery.dataTables.js' %}"></script>
-  <script src="{% static 'vendors/datatables.net-bs4/dataTables.bootstrap4.js' %}"></script>
-  <script src="{% static 'js/dataTables.select.min.js' %}"></script>
-
-  <!-- End plugin js for this page -->
-  <!-- inject:js -->
-
-  <script src="{% static 'js/off-canvas.js' %}"></script>
-  <script src="{% static 'js/hoverable-collapse.js' %}"></script>
-  <script src="{% static 'js/template.js' %}"></script>
-  <script src="{% static 'js/settings.js' %}"></script>
-  <script src="{% static 'js/todolist.js' %}"></script>
-  <!-- endinject -->
   <!-- Custom js for this page-->
   <script src="{% static 'js/dashboard.js' %}"></script>
   <script src="{% static 'js/Chart.roundedBarCharts.js' %}"></script>
+  <script>
+    $(document).ready(function() {
+        // Initialise DataTables
+        $('#example').DataTable();
+    
+        let editMode = false;
+    
+        function showToast(message, success=true) {
+            let toastEl = $("#toastMessage");
+            toastEl.removeClass("bg-success bg-danger").addClass(success ? "bg-success" : "bg-danger");
+            toastEl.find(".toast-body").text(message);
+            let toast = new bootstrap.Toast(toastEl[0]);
+            toast.show();
+        }
+    
+        $("#element-form").submit(function(e) {
+            e.preventDefault();
+            let id = $("#element-id").val();
+            let url = id ? `/element/update/${id}/` : "{% url 'element_create' %}";
+            let method = "POST";
+    
+            $.ajax({
+                type: method,
+                url: url,
+                data: {
+                    codeElement: $("#codeElement").val(),
+                    nom: $("#nom").val(),
+                    csrfmiddlewaretoken: "{{ csrf_token }}"
+                },
+                success: function(response) {
+                    if (response.success) {
+                        if (id) {
+                            // Mise à jour d'un élément existant
+                            $(`tr[data-id="${id}"]`).html(`
+                                <td>${response.codeElement}</td>
+                                <td>${response.nom}</td>
+                                <td>
+                                    <button class="btn btn-warning btn-sm edit" data-id="${response.id}" data-bs-toggle="modal" data-bs-target="#elementModal">
+                                        <i class="fas fa-edit"></i> Modifier
+                                    </button>
+                                    <button class="btn btn-danger btn-sm delete" data-id="${response.id}">
+                                        <i class="fas fa-trash"></i> Supprimer
+                                    </button>
+                                </td>
+                            `);
+                        } else {
+                            // Ajout d'un nouvel élément
+                            $("#element-list").append(`
+                                <tr data-id="${response.id}">
+                                    <td>${response.codeElement}</td>
+                                    <td>${response.nom}</td>
+                                    <td>
+                                        <button class="btn btn-warning btn-sm edit" data-id="${response.id}" data-bs-toggle="modal" data-bs-target="#elementModal">
+                                            <i class="fas fa-edit"></i> Modifier
+                                        </button>
+                                        <button class="btn btn-danger btn-sm delete" data-id="${response.id}">
+                                            <i class="fas fa-trash"></i> Supprimer
+                                        </button>
+                                    </td>
+                                </tr>
+                            `);
+                        }
+                        showToast("Élément enregistré avec succès !");
+                        $("#element-form")[0].reset();
+                        $("#element-id").val("");
+                        $("#elementModal").modal("hide");
+                        $('#example').DataTable().clear().destroy(); // Réinitialise DataTable pour prendre en compte le nouveau contenu
+                        $('#example').DataTable(); // Redémarre DataTable
+                    } else {
+                        showToast("Erreur : " + JSON.stringify(response.errors), false);
+                    }
+                }
+            });
+        });
+    
+        $(document).on("click", ".edit", function() {
+            let id = $(this).data("id");
+            let row = $(`tr[data-id="${id}"]`);
+            $("#element-id").val(id);
+            $("#codeElement").val(row.find("td").eq(0).text());
+            $("#nom").val(row.find("td").eq(1).text());
+        });
+    
+        $(document).on("click", ".delete", function() {
+            let id = $(this).data("id");
+            $.ajax({
+                type: "POST",
+                url: `/element/delete/${id}/`,
+                data: { csrfmiddlewaretoken: "{{ csrf_token }}" },
+                success: function(response) {
+                    if (response.success) {
+                        $(`tr[data-id="${id}"]`).remove();
+                        showToast("Élément supprimé avec succès !");
+                        $('#example').DataTable().clear().destroy(); // Réinitialise DataTable pour mettre à jour la table
+                        $('#example').DataTable(); // Redémarre DataTable
+                    } else {
+                        showToast("Erreur lors de la suppression", false);
+                    }
+                }
+            });
+        });
+    });
+    </script>
+
   <!-- End custom js for this page-->
 </body>
 
 </html>
-
