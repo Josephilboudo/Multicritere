@@ -16,7 +16,7 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import include, path
-from .views import home, element, ressource, critere, element_create, element_update, element_delete, ressource_create, ressource_delete, ressource_update
+from .views import home, element, ressource, critere, element_create, element_update, element_delete, ressource_create, ressource_delete, ressource_update, import_csv, import_csv_ressource
 
 urlpatterns = [
     path('admin/', admin.site.urls),
@@ -28,6 +28,8 @@ urlpatterns = [
     path('element/create/', element_create, name='element_create'),
     path('element/update/<int:id>/', element_update, name='element_update'),
     path('element/delete/<int:id>/', element_delete, name='element_delete'),
+    path("element/import-csv/", import_csv, name="import_csv"),
+    path("ressource/import-csv/", import_csv_ressource, name="import_csv_ressource"),
     path('ressource/create/', ressource_create, name='ressource_create'),
     path('ressource/update/<int:id>/', ressource_update, name='ressource_update'),
     path('ressource/delete/<int:id>/', ressource_delete, name='ressource_delete'),

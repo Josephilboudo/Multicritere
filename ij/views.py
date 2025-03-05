@@ -1,5 +1,10 @@
 from django.shortcuts import render, get_object_or_404
 from django.http import JsonResponse
+import json
+import csv
+from django.http import JsonResponse
+from django.views.decorators.csrf import csrf_exempt
+from django.core.files.storage import default_storage
 import pandas as pd
 from .form import FichierCSVForm
 from .models import Element, Ressource, Critere, Contrainte, Solution
@@ -116,3 +121,72 @@ def ressource_delete(request, id):
         return JsonResponse({'success': True})
 
     return JsonResponse({'success': False, 'errors': 'Requête invalide.'})
+
+
+@csrf_exempt
+def import_csv(request):
+    if request.method == "POST" and request.FILES.get("csv_file"):
+        csv_file = request.FILES["csv_file"]
+        selected_columns = json.loads(request.POST.get("columns", "[]"))
+
+        if not selected_columns:
+            return JsonResponse({"error": "Aucune colonne sélectionnée"}, status=400)
+
+        # Sauvegarder temporairement le fichier
+        file_path = default_storage.save(f"temp/{csv_file.name}", csv_file)
+
+        # Lire le fichier CSV
+        with open(file_path, newline="", encoding="utf-8") as csvfile:
+            reader = csv.DictReader(csvfile)
+            imported_count = 0
+
+            for row in reader:
+                # Vérifier que les colonnes existent dans le fichier
+                if all(col in row for col in selected_columns):
+                    code = row.get("codeElement", "").strip()
+                    nom = row.get("nom", "").strip()
+
+                    if code and nom:  # Éviter d'insérer des données vides
+                        Element.objects.update_or_create(
+                            codeElement=code,
+                            defaults={"nom": nom}
+                        )
+                        imported_count += 1
+
+        return JsonResponse({"message": f"{imported_count} éléments importés avec succès !"})
+
+    return JsonResponse({"error": "Requête invalide"}, status=400)
+
+@csrf_exempt
+def import_csv_ressource(request):
+    if request.method == "POST" and request.FILES.get("csv_file"):
+        csv_file = request.FILES["csv_file"]
+        selected_columns = json.loads(request.POST.get("columns", "[]"))
+
+        if not selected_columns:
+            return JsonResponse({"error": "Aucune colonne sélectionnée"}, status=400)
+
+        # Sauvegarder temporairement le fichier
+        file_path = default_storage.save(f"temp/{csv_file.name}", csv_file)
+
+        # Lire le fichier CSV
+        with open(file_path, newline="", encoding="utf-8") as csvfile:
+            reader = csv.DictReader(csvfile)
+            imported_count = 0
+
+            for row in reader:
+                # Vérifier que les colonnes existent dans le fichier
+                if all(col in row for col in selected_columns):
+                    code = row.get("codeRessource", "").strip()
+                    nom = row.get("nom", "").strip()
+
+                    if code and nom:  # Éviter d'insérer des données vides
+                        Ressource.objects.update_or_create(
+                            codeRessource=code,
+                            defaults={"nom": nom}
+                        )
+                        imported_count += 1
+
+        return JsonResponse({"message": f"{imported_count} éléments importés avec succès !"})
+
+    return JsonResponse({"error": "Requête invalide"}, status=400)

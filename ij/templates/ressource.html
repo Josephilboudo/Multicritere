@@ -281,6 +281,9 @@
     <button class="btn btn-primary mb-3" data-bs-toggle="modal" data-bs-target="#ressourceModal">
         <i class="fas fa-plus"></i> Ajouter une ressource
     </button>
+    <div class="container mt-4">
+        <button id="openModal" class="btn btn-primary">Import from CSV</button>
+    </div>
                         <div class="table-responsive">
                             <table class="display expandable-table table table-striped table-bordered" style="width:100%">
                                 <thead>
@@ -477,6 +480,272 @@
         });
     });
     </script>
+    <script>
+        $(document).ready(function() {
+            // Initialise DataTables
+            $('#example').DataTable();
+        
+            let editMode = false;
+        
+            function showToast(message, success=true) {
+                let toastEl = $("#toastMessage");
+                toastEl.removeClass("bg-success bg-danger").addClass(success ? "bg-success" : "bg-danger");
+                toastEl.find(".toast-body").text(message);
+                let toast = new bootstrap.Toast(toastEl[0]);
+                toast.show();
+            }
+        
+            $("#ressource-form").submit(function(e) {
+                e.preventDefault();
+                let id = $("#ressource-id").val();
+                let url = id ? `/ressource/update/${id}/` : "{% url 'ressource_create' %}";
+                let method = "POST";
+        
+                $.ajax({
+                    type: method,
+                    url: url,
+                    data: {
+                        codeRessource: $("#codeRessource").val(),
+                        nom: $("#nom").val(),
+                        csrfmiddlewaretoken: "{{ csrf_token }}"
+                    },
+                    success: function(response) {
+                        if (response.success) {
+                            if (id) {
+                                // Mise à jour d'un élément existant
+                                $(`tr[data-id="${id}"]`).html(`
+                                    <td>${response.codeRessource}</td>
+                                    <td>${response.nom}</td>
+                                    <td>
+                                        <button class="btn btn-warning btn-sm edit" data-id="${response.id}" data-bs-toggle="modal" data-bs-target="#ressourceModal">
+                                            <i class="fas fa-edit"></i> Modifier
+                                        </button>
+                                        <button class="btn btn-danger btn-sm delete" data-id="${response.id}">
+                                            <i class="fas fa-trash"></i> Supprimer
+                                        </button>
+                                    </td>
+                                `);
+                            } else {
+                                // Ajout d'un nouvel élément
+                                $("#ressource-list").append(`
+                                    <tr data-id="${response.id}">
+                                        <td>${response.codeRessource}</td>
+                                        <td>${response.nom}</td>
+                                        <td>
+                                            <button class="btn btn-warning btn-sm edit" data-id="${response.id}" data-bs-toggle="modal" data-bs-target="#ressourceModal">
+                                                <i class="fas fa-edit"></i> Modifier
+                                            </button>
+                                            <button class="btn btn-danger btn-sm delete" data-id="${response.id}">
+                                                <i class="fas fa-trash"></i> Supprimer
+                                            </button>
+                                        </td>
+                                    </tr>
+                                `);
+                            }
+                            showToast("Élément enregistré avec succès !");
+                            $("#ressource-form")[0].reset();
+                            $("#ressource-id").val("");
+                            $("#ressourceModal").modal("hide");
+                            $('#example').DataTable().clear().destroy(); // Réinitialise DataTable pour prendre en compte le nouveau contenu
+                            $('#example').DataTable(); // Redémarre DataTable
+                        } else {
+                            showToast("Erreur : " + JSON.stringify(response.errors), false);
+                        }
+                    }
+                });
+            });
+        
+            $(document).on("click", ".edit", function() {
+                let id = $(this).data("id");
+                let row = $(`tr[data-id="${id}"]`);
+                $("#ressource-id").val(id);
+                $("#codeRessource").val(row.find("td").eq(0).text());
+                $("#nom").val(row.find("td").eq(1).text());
+            });
+        
+            $(document).on("click", ".delete", function() {
+                let id = $(this).data("id");
+                $.ajax({
+                    type: "POST",
+                    url: `/ressource/delete/${id}/`,
+                    data: { csrfmiddlewaretoken: "{{ csrf_token }}" },
+                    success: function(response) {
+                        if (response.success) {
+                            $(`tr[data-id="${id}"]`).remove();
+                            showToast("Élément supprimé avec succès !");
+                            $('#example').DataTable().clear().destroy(); // Réinitialise DataTable pour mettre à jour la table
+                            $('#example').DataTable(); // Redémarre DataTable
+                        } else {
+                            showToast("Erreur lors de la suppression", false);
+                        }
+                    }
+                });
+            });
+        });
+        </script>
+    
+        <!-- Modal 1: Sélection du fichier CSV -->
+        <div class="modal fade" id="csvModal" tabindex="-1">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Importer un fichier CSV</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <input type="file" id="fileInput" accept=".csv" class="form-control">
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+                        <button id="processFile" class="btn btn-success">Suivant</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    
+        <!-- Modal 2: Sélection des colonnes -->
+        <div class="modal fade" id="columnsModal" tabindex="-1">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Sélectionner les colonnes à importer</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <form id="columnsForm"></form>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+                        <button id="importData" class="btn btn-success">Importer</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    
+        <!-- Toast -->
+        <div id="toastContainer" class="toast align-items-center text-white bg-success" role="alert">
+            <div class="d-flex">
+                <div class="toast-body" id="toastMessage"></div>
+                <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+            </div>
+        </div>
+    
+        <script>
+            $(document).ready(function() {
+                let fileName = "";
+                let csvHeaders = [];
+    
+                // Ouvrir la première modal
+                $("#openModal").click(function() {
+                    $("#csvModal").modal("show");
+                });
+    
+                // Lire le fichier CSV et extraire les en-têtes
+                $("#processFile").click(function() {
+                    let file = $("#fileInput")[0].files[0];
+                    if (!file) {
+                        showToast("Aucun fichier sélectionné !", "danger");
+                        return;
+                    }
+    
+                    fileName = file.name;
+    
+                    // Lecture du fichier CSV
+                    let reader = new FileReader();
+                    reader.onload = function(event) {
+                        let text = event.target.result;
+                        let lines = text.split("\n");
+                        
+                        if (lines.length > 0) {
+                            csvHeaders = lines[0].split(",").map(h => h.trim());
+                            showColumnsModal(csvHeaders);
+                        } else {
+                            showToast("Fichier CSV vide ou incorrect !", "danger");
+                        }
+                    };
+                    reader.readAsText(file);
+    
+                    $("#csvModal").modal("hide");
+                });
+    
+                // Affichage de la deuxième modal avec les colonnes à sélectionner
+                function showColumnsModal(headers) {
+                    let form = $("#columnsForm");
+                    form.empty();
+    
+                    headers.forEach((header, index) => {
+                        let checkbox = `
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" value="${header}" id="col${index}" checked>
+                                <label class="form-check-label" for="col${index}">${header}</label>
+                            </div>
+                        `;
+                        form.append(checkbox);
+                    });
+    
+                    $("#columnsModal").modal("show");
+                }
+    
+                // Validation de l'importation
+                $("#importData").click(function() {
+                    let selectedColumns = [];
+                    $("#columnsForm input:checked").each(function() {
+                        selectedColumns.push($(this).val());
+                    });
+    
+                    if (selectedColumns.length === 0) {
+                        showToast("Veuillez sélectionner au moins une colonne !", "danger");
+                        return;
+                    }
+    
+                    showToast("Importation réussie des colonnes : " + selectedColumns.join(", "), "success");
+    
+                    // Fermer la modal
+                    $("#columnsModal").modal("hide");
+                });
+    
+                // Fonction pour afficher un toast
+                function showToast(message, type) {
+                    $("#toastMessage").text(message);
+                    $("#toastContainer").removeClass("bg-success bg-danger").addClass("bg-" + type);
+                    let toast = new bootstrap.Toast(document.getElementById("toastContainer"));
+                    toast.show();
+                }
+            });
+            $("#importData").click(function() {
+                let selectedColumns = [];
+                $("#columnsForm input:checked").each(function() {
+                    selectedColumns.push($(this).val());
+                });
+            
+                if (selectedColumns.length === 0) {
+                    showToast("Veuillez sélectionner au moins une colonne !", "danger");
+                    return;
+                }
+            
+                let file = $("#fileInput")[0].files[0];
+                let formData = new FormData();
+                formData.append("csv_file", file);
+                formData.append("columns", JSON.stringify(selectedColumns));
+            
+                $.ajax({
+                    url: "/ressource/import-csv/",  // URL de la vue Django
+                    type: "POST",
+                    data: formData,
+                    processData: false,
+                    contentType: false,
+                    success: function(response) {
+                        showToast("Importation réussie !", "success");
+                        $("#columnsModal").modal("hide");
+                    },
+                    error: function(xhr) {
+                        showToast("Erreur d'importation !", "danger");
+                    }
+                });
+            });
+            
+        </script>
+    
 
   <!-- End custom js for this page-->
 </body>
