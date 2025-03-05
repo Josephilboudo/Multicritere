@@ -626,7 +626,7 @@
             formData.append("columns", JSON.stringify(selectedColumns));
         
             $.ajax({
-                url: "/import-csv/",  // URL de la vue Django
+                url: "/element/import-csv/",  // URL de la vue Django
                 type: "POST",
                 data: formData,
                 processData: false,
