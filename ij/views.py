@@ -53,15 +53,16 @@ def home(request):
         
     })
 def ressource(request):
-    ressources= Ressource.objects.all()
+    ressources= Ressource.objects.all().order_by('codeRessource')
     return render(request, 'ressource.html', {'ressources': ressources})
 
 def element(request):
-    elements = Element.objects.all()
+    elements = Element.objects.all().order_by('codeElement')
     return render(request, 'element.html', {'elements': elements})
 
 def critere(request):
-    return render(request, 'critere.html')
+    criteres = Critere.objects.all()
+    return render(request, 'critere.html', {'criteres':criteres})
 
 """ Elements """
 def element_list(request):
@@ -144,6 +145,8 @@ def delete_element(request):
         'success': False,
         'message': "Méthode non autorisée"
     })
+    
+
     """ Ressources """
 def ressource_create(request):
     if request.method == 'POST':
@@ -176,75 +179,6 @@ def ressource_delete(request, id):
 
     return JsonResponse({'success': False, 'errors': 'Requête invalide.'})
 
-
-@csrf_exempt
-def import_csv(request):
-    if request.method == "POST" and request.FILES.get("csv_file"):
-        csv_file = request.FILES["csv_file"]
-        selected_columns = json.loads(request.POST.get("columns", "[]"))
-
-        if not selected_columns:
-            return JsonResponse({"error": "Aucune colonne sélectionnée"}, status=400)
-
-        # Sauvegarder temporairement le fichier
-        file_path = default_storage.save(f"temp/{csv_file.name}", csv_file)
-
-        # Lire le fichier CSV
-        with open(file_path, newline="", encoding="utf-8") as csvfile:
-            reader = csv.DictReader(csvfile)
-            imported_count = 0
-
-            for row in reader:
-                # Vérifier que les colonnes existent dans le fichier
-                if all(col in row for col in selected_columns):
-                    code = row.get("codeElement", "").strip()
-                    nom = row.get("nom", "").strip()
-
-                    if code and nom:  # Éviter d'insérer des données vides
-                        Element.objects.update_or_create(
-                            codeElement=code,
-                            defaults={"nom": nom}
-                        )
-                        imported_count += 1
-
-        return JsonResponse({"message": f"{imported_count} éléments importés avec succès !"})
-
-    return JsonResponse({"error": "Requête invalide"}, status=400)
-
-@csrf_exempt
-def import_csv_ressource(request):
-    if request.method == "POST" and request.FILES.get("csv_file"):
-        csv_file = request.FILES["csv_file"]
-        selected_columns = json.loads(request.POST.get("columns", "[]"))
-
-        if not selected_columns:
-            return JsonResponse({"error": "Aucune colonne sélectionnée"}, status=400)
-
-        # Sauvegarder temporairement le fichier
-        file_path = default_storage.save(f"temp/{csv_file.name}", csv_file)
-
-        # Lire le fichier CSV
-        with open(file_path, newline="", encoding="utf-8") as csvfile:
-            reader = csv.DictReader(csvfile)
-            imported_count = 0
-
-            for row in reader:
-                # Vérifier que les colonnes existent dans le fichier
-                if all(col in row for col in selected_columns):
-                    code = row.get("codeRessource", "").strip()
-                    nom = row.get("nom", "").strip()
-
-                    if code and nom:  # Éviter d'insérer des données vides
-                        Ressource.objects.update_or_create(
-                            codeRessource=code,
-                            defaults={"nom": nom}
-                        )
-                        imported_count += 1
-
-        return JsonResponse({"message": f"{imported_count} éléments importés avec succès !"})
-
-    return JsonResponse({"error": "Requête invalide"}, status=400)
-
 def connect_database(request):
     if request.method == "POST":
         db_name = request.POST.get("database_name")
@@ -253,7 +187,13 @@ def connect_database(request):
 
         try:
             connection = get_dynamic_connection(db_name, name, password)
-
+            
+            request.session['db_credentials'] = {
+                'db_name': db_name,
+                'name': name,
+                'password': password
+            }
+            request.session.save()
             with connection.cursor() as cursor:
                 cursor.execute("SELECT DATABASE();")  # Vérifie la connexion
                 active_db = cursor.fetchone()
@@ -280,7 +220,7 @@ def connect_database(request):
                 "message": f"Connexion réussie à {db_name}",
                 "tables": tables,
                 "columns": columns,
-                "data": data
+                "data": data,
             })
 
         except Exception as e:
@@ -290,24 +230,28 @@ def connect_database(request):
     return JsonResponse({"status": "error", "message": "Requête invalide"}, status=400)
 
 def get_table_data(request):
+    db_name = credentials.get('db_name')
+    name = credentials.get('name')
+    password = credentials.get('password')
+            
+            # Obtenir la connexion en utilisant les identifiants stockés
+    connection = get_dynamic_connection(db_name, name, password)
     """
     Récupère les données d'une table spécifique.
     """
     if request.method == "POST":
         try:
             data = json.loads(request.body)
-            db_name = data.get("dbName")
             table_name = data.get("tableName")
             
-            # Vérifier que la base de données est déjà configurée
-            if db_name not in settings.DATABASES:
+            # Récupérer les identifiants de la session
+            credentials = request.session.get('db_credentials')
+            
+            if not credentials:
                 return JsonResponse({
                     "status": "error", 
-                    "message": "Base de données non connectée"
+                    "message": "Aucune connexion établie. Veuillez vous connecter d'abord."
                 })
-            
-            # Obtenir la connexion
-            connection = connections[db_name]
             
             with connection.cursor() as cursor:
                 # Extraire les données de la table
@@ -342,7 +286,7 @@ def get_table_data(request):
         "status": "error",
         "message": "Méthode non autorisée"
     }, status=405)
-
+    
 def import_elements(request):
     """
     Importe des éléments depuis une autre base de données.
@@ -393,5 +337,143 @@ def import_elements(request):
     
     return JsonResponse({
         "success": False,
+        "message": "Méthode non autorisée"
+    }, status=405)
+    
+    
+def import_elements(request):
+    """
+    Importe des éléments depuis une autre base de données.
+    """
+    if request.method == "POST":
+        try:
+            data = json.loads(request.body)
+            elements = data.get("elements", [])
+            
+            imported_count = 0
+            error_count = 0
+            
+            for element_data in elements:
+                try:
+                    # Créer ou mettre à jour l'élément
+                    element, created = Element.objects.get_or_create(
+                        codeElement=element_data['codeElement'],
+                        defaults={'description': element_data['description']}
+                    )
+                    
+                    if not created:
+                        # Mettre à jour la description si l'élément existe déjà
+                        element.description = element_data['description']
+                        element.save()
+                    
+                    imported_count += 1
+                except Exception as element_error:
+                    print(f"Erreur lors de l'importation de l'élément {element_data.get('codeElement')}: {element_error}")
+                    error_count += 1
+            
+            message = f"{imported_count} élément(s) importé(s) avec succès."
+            if error_count > 0:
+                message += f" {error_count} élément(s) n'ont pas pu être importés."
+            
+            return JsonResponse({
+                "success": True,
+                "message": message
+            })
+            
+        except Exception as e:
+            return JsonResponse({
+                "success": False,
+                "message": f"Erreur lors de l'importation: {str(e)}"
+            })
+    
+    return JsonResponse({
+        "success": False,
+        "message": "Méthode non autorisée"
+    }, status=405)
+
+def get_table_columns(request):
+    """
+    Récupère les colonnes d'une table spécifique.
+    """
+    if request.method == "POST":
+        try:
+            data = json.loads(request.body)
+            table_name = data.get("tableName")
+
+            # Récupérer les identifiants de la session
+            credentials = request.session.get('db_credentials')
+            if not credentials:
+                return JsonResponse({
+                    "status": "error", 
+                    "message": "Aucune connexion établie. Veuillez vous connecter d'abord."
+                }, status=401)
+
+            db_name = credentials.get('db_name')
+            name = credentials.get('name')
+            password = credentials.get('password')
+
+            # Établir la connexion
+            connection = get_dynamic_connection(db_name, name, password)
+
+            with connection.cursor() as cursor:
+                # Récupérer les colonnes de la table
+                cursor.execute(f"DESCRIBE {table_name};")
+                columns = [row[0] for row in cursor.fetchall()]
+
+                return JsonResponse({
+                    "status": "success",
+                    "columns": columns,
+                })
+
+        except Exception as e:
+            return JsonResponse({
+                "status": "error",
+                "message": str(e)
+            }, status=500)
+
+    return JsonResponse({
+        "status": "error",
+        "message": "Méthode non autorisée"
+    }, status=405)
+    
+def get_tables(request):
+    """
+    Récupère la liste des tables de la base de données connectée.
+    """
+    if request.method == "POST":
+        try:
+            # Récupérer les identifiants de la session
+            credentials = request.session.get('db_credentials')
+            if not credentials:
+                return JsonResponse({
+                    "status": "error", 
+                    "message": "Aucune connexion établie. Veuillez vous connecter d'abord."
+                }, status=401)
+
+            db_name = credentials.get('db_name')
+            name = credentials.get('name')
+            password = credentials.get('password')
+
+            # Établir la connexion
+            connection = get_dynamic_connection(db_name, name, password)
+
+            with connection.cursor() as cursor:
+                # Récupérer la liste des tables
+                cursor.execute("SHOW TABLES;")
+                tables = [row[0] for row in cursor.fetchall()]
+
+                return JsonResponse({
+                    "status": "success",
+                    "tables": tables,
+                })
+
+        except Exception as e:
+            return JsonResponse({
+                "status": "error",
+                "message": str(e)
+            }, status=500)
+
+    return JsonResponse({
+        "status": "error",
         "message": "Méthode non autorisée"
     }, status=405)

@@ -17,7 +17,7 @@ Including another URLconf
 from django import views
 from django.contrib import admin
 from django.urls import include, path
-from .views import connect_database, delete_element, element_list, home, element, ressource, critere,ressource_create, ressource_delete, ressource_update, import_csv, import_csv_ressource, save_element, get_elements_json, get_table_data, import_elements
+from .views import connect_database, delete_element, element_list, get_table_columns, get_tables, home, element, ressource, critere,ressource_create, ressource_delete, ressource_update, save_element, get_elements_json, get_table_data, import_elements
 
 urlpatterns = [
     path('admin/', admin.site.urls),
@@ -26,9 +26,6 @@ urlpatterns = [
     path('ressource/', ressource, name="ressource"),
     path('critere/', critere, name="critere"),
     path('auth/', include('authentification.urls')),
-
-    path("element/import-csv/", import_csv, name="import_csv"),
-    path("ressource/import-csv/", import_csv_ressource, name="import_csv_ressource"),
     path('ressource/create/', ressource_create, name='ressource_create'),
     path('ressource/update/<int:id>/', ressource_update, name='ressource_update'),
     path('ressource/delete/<int:id>/', ressource_delete, name='ressource_delete'),
@@ -37,6 +34,8 @@ urlpatterns = [
     path('elements/json/', get_elements_json, name='get_elements_json'),
     path('elements/save/', save_element, name='save_element'),
     path('elements/delete/', delete_element, name='delete_element'),
-    path('get_table_data/', get_table_data, name='get_table_data'),
+    
+    path('get_tables/', get_tables, name='get_tables'),
+    path('get_table_columns/', get_table_columns, name='get_table_columns'),
     path('import_elements/', import_elements, name='import_elements'),
 ]
