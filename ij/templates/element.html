@@ -274,79 +274,345 @@
     <div class="col-md-12 grid-margin stretch-card">
         <div class="card">
             <div class="card-body">
-                <p class="card-title">Liste des elements</p>
                 <div class="row">
                     <div class="col-12">
                         <!-- Bouton pour ouvrir la modal d'ajout -->
-    <button class="btn btn-primary mb-3" data-bs-toggle="modal" data-bs-target="#elementModal">
-        <i class="fas fa-plus"></i> Ajouter un Élément
-    </button>
     <div class="container mt-4">
-        <button id="openModal" class="btn btn-primary">Import from CSV</button>
+        <button id="#" class="btn btn-primary">Importer donnees</button>
     </div>
-                        <div class="table-responsive">
-                            <table class="display expandable-table table table-striped table-bordered" style="width:100%">
-                                <thead>
-                                    <tr>
-                                        <th>Code</th>
-                                        <th>Nom</th>
-                                        <th>Actions</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="element-list">
-                                            <tbody id="element-list">
-            {% for element in elements %}
-            <tr data-id="{{ element.id }}">
-                <td>{{ element.codeElement }}</td>
-                <td>{{ element.nom }}</td>
-                <td>
-                    <button class="btn btn-warning btn-sm edit" data-id="{{ element.id }}" data-bs-toggle="modal" data-bs-target="#elementModal">
-                        <i class="fas fa-edit"></i> Modifier
-                    </button>
-                    <button class="btn btn-danger btn-sm delete" data-id="{{ element.id }}">
-                        <i class="fas fa-trash"></i> Supprimer
-                    </button>
-                </td>
-            </tr>
-            {% endfor %}
-        </tbody>
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
+ <div class="container mt-5">
+  <h2>Liste des éléments</h2>
+  <button type="button" class="btn btn-primary mb-3" data-bs-toggle="modal" data-bs-target="#elementModal" onclick="resetForm()">
+      <i class="fas fa-plus"></i> Ajouter un élément
+  </button>
+  
+  <div id="element-list-container">
+      <table class="table table-striped">
+          <thead>
+              <tr>
+                  <th>Code</th>
+                  <th>Description</th>
+                  <th>Actions</th>
+              </tr>
+          </thead>
+          <tbody>
+              {% for element in elements %}
+              <tr>
+                  <td>{{ element.codeElement }}</td>
+                  <td>{{ element.description }}</td>
+                  <td>
+                      <button class="btn btn-info btn-sm" onclick="editElement('{{ element.codeElement }}', '{{ element.description }}')">
+                          <i class="fas fa-edit"></i>
+                      </button>
+                      <button class="btn btn-danger btn-sm" onclick="deleteElement('{{ element.codeElement }}')">
+                          <i class="fas fa-trash"></i>
+                      </button>
+                  </td>
+              </tr>
+              {% empty %}
+              <tr>
+                  <td colspan="3" class="text-center">Aucun élément disponible</td>
+              </tr>
+              {% endfor %}
+          </tbody>
+      </table>
+  </div>
 </div>
 
-<!-- Modal pour Ajouter/Modifier -->
-<div class="modal fade" id="elementModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">Ajouter un Élément</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body">
-                <form id="element-form">
-                    <input type="hidden" id="element-id">
-                    <div class="mb-3">
-                        <label for="codeElement" class="form-label">Code Élément</label>
-                        <input type="text" class="form-control" id="codeElement" required>
-                    </div>
-                    <div class="mb-3">
-                        <label for="nom" class="form-label">Nom</label>
-                        <input type="text" class="form-control" id="nom" required>
-                    </div>
-                    <button type="submit" class="btn btn-success">Enregistrer</button>
-                </form>
-            </div>
-        </div>
-    </div>
+<!-- Modal pour CRUD -->
+<div class="modal fade" id="elementModal" tabindex="-1" aria-labelledby="elementModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+      <div class="modal-content">
+          <div class="modal-header">
+              <h5 class="modal-title" id="elementModalLabel">Ajouter/Modifier un élément</h5>
+              <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <form id="elementForm">
+              {% csrf_token %}
+              <div class="modal-body">
+                  <input type="hidden" name="action" id="formAction" value="add">
+                  
+                  <div class="mb-3">
+                      <label for="codeElement" class="form-label">Code de l'élément</label>
+                      <input type="text" class="form-control" id="codeElement" name="codeElement" required>
+                  </div>
+                  
+                  <div class="mb-3">
+                      <label for="description" class="form-label">Description</label>
+                      <input type="text" class="form-control" id="description" name="description" required>
+                  </div>
+              </div>
+              <div class="modal-footer">
+                  <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+                  <button type="button" id="saveButton" class="btn btn-primary">Enregistrer</button>
+              </div>
+          </form>
+      </div>
+  </div>
 </div>
 
-<!-- Toast Notifications -->
+<!-- Modal de confirmation de suppression -->
+<div class="modal fade" id="deleteModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog">
+      <div class="modal-content">
+          <div class="modal-header">
+              <h5 class="modal-title">Confirmer la suppression</h5>
+              <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body">
+              Êtes-vous sûr de vouloir supprimer cet élément ?
+          </div>
+          <div class="modal-footer">
+              <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+              <button type="button" id="confirmDeleteButton" class="btn btn-danger">Supprimer</button>
+          </div>
+      </div>
+  </div>
+</div>
+
+<!-- Container pour les toasts -->
+<div class="toast-container"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+  // Réinitialiser le formulaire pour l'ajout
+  function resetForm() {
+      document.getElementById('elementForm').reset();
+      document.getElementById('formAction').value = 'add';
+      document.getElementById('codeElement').readOnly = false;
+      document.getElementById('elementModalLabel').textContent = 'Ajouter un élément';
+  }
+  
+  // Préremplir le formulaire pour la modification
+  function editElement(code, description) {
+      document.getElementById('formAction').value = 'edit';
+      document.getElementById('codeElement').value = code;
+      document.getElementById('codeElement').readOnly = true;
+      document.getElementById('description').value = description;
+      document.getElementById('elementModalLabel').textContent = 'Modifier un élément';
+      
+      var modal = new bootstrap.Modal(document.getElementById('elementModal'));
+      modal.show();
+  }
+  
+  // Obtenir le token CSRF
+  function getCookie(name) {
+      let cookieValue = null;
+      if (document.cookie && document.cookie !== '') {
+          const cookies = document.cookie.split(';');
+          for (let i = 0; i < cookies.length; i++) {
+              const cookie = cookies[i].trim();
+              if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                  cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                  break;
+              }
+          }
+      }
+      return cookieValue;
+  }
+  
+  // Configurer la suppression
+  function deleteElement(code) {
+      document.getElementById('confirmDeleteButton').setAttribute('data-code', code);
+      var modal = new bootstrap.Modal(document.getElementById('deleteModal'));
+      modal.show();
+  }
+  
+  // Afficher un toast
+  function showToast(message, type) {
+      const toastContainer = document.querySelector('.toast-container');
+      const toast = document.createElement('div');
+      toast.classList.add('toast', 'show');
+      toast.setAttribute('role', 'alert');
+      toast.setAttribute('aria-live', 'assertive');
+      toast.setAttribute('aria-atomic', 'true');
+      
+      toast.innerHTML = `
+          <div class="toast-header bg-${type} text-white">
+              <strong class="me-auto">Notification</strong>
+              <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Close"></button>
+          </div>
+          <div class="toast-body">
+              ${message}
+          </div>
+      `;
+      
+      toastContainer.appendChild(toast);
+      
+      setTimeout(() => {
+          const bsToast = new bootstrap.Toast(toast);
+          bsToast.hide();
+          setTimeout(() => {
+              toast.remove();
+          }, 500);
+      }, 5000);
+  }
+  
+  // Construire le HTML du tableau à partir des données JSON
+  function buildTableHTML(elements) {
+      let html = `
+          <table class="table table-striped">
+              <thead>
+                  <tr>
+                      <th>Code</th>
+                      <th>Description</th>
+                      <th>Actions</th>
+                  </tr>
+              </thead>
+              <tbody>`;
+      
+      if (elements.length === 0) {
+          html += `
+              <tr>
+                  <td colspan="3" class="text-center">Aucun élément disponible</td>
+              </tr>`;
+      } else {
+          elements.forEach(element => {
+              html += `
+                  <tr>
+                      <td>${element.codeElement}</td>
+                      <td>${element.description}</td>
+                      <td>
+                          <button class="btn btn-info btn-sm" onclick="editElement('${element.codeElement}', '${element.description}')">
+                              <i class="fas fa-edit"></i>
+                          </button>
+                          <button class="btn btn-danger btn-sm" onclick="deleteElement('${element.codeElement}')">
+                              <i class="fas fa-trash"></i>
+                          </button>
+                      </td>
+                  </tr>`;
+          });
+      }
+      
+      html += `
+              </tbody>
+          </table>`;
+      
+      return html;
+  }
+  
+  // Recharger la liste des éléments
+  function refreshElementList() {
+      fetch('{% url "get_elements_json" %}')
+          .then(response => response.json())
+          .then(data => {
+              if (data.success) {
+                  const tableHTML = buildTableHTML(data.elements);
+                  document.getElementById('element-list-container').innerHTML = tableHTML;
+              } else {
+                  showToast('Erreur lors du chargement des données', 'danger');
+              }
+          })
+          .catch(error => {
+              console.error('Erreur lors du rechargement de la liste:', error);
+              showToast('Erreur lors du rechargement de la liste', 'danger');
+          });
+  }
+  
+  // Fonction pour nettoyer les modals et backdrops
+  function cleanupModals() {
+      // Supprime toutes les modal-backdrop
+      document.querySelectorAll('.modal-backdrop').forEach(el => el.remove());
+      
+      // Réinitialise le body
+      document.body.classList.remove('modal-open');
+      document.body.style.overflow = '';
+      document.body.style.paddingRight = '';
+  }
+  
+  // Force la fermeture d'un modal
+  function forceCloseModal(modalElement) {
+      if (!modalElement) return;
+      
+      // Essayez de récupérer l'instance Bootstrap
+      let modalInstance = bootstrap.Modal.getInstance(modalElement);
+      
+      if (modalInstance) {
+          // Si l'instance existe, utilisez la méthode hide
+          modalInstance.hide();
+      } else {
+          // Si l'instance n'existe pas, fermez manuellement
+          modalElement.classList.remove('show');
+          modalElement.setAttribute('aria-hidden', 'true');
+          modalElement.style.display = 'none';
+      }
+      
+      // Nettoyez après tout ça pour être sûr
+      setTimeout(cleanupModals, 300);
+  }
+  
+  // Configurer les événements au chargement de la page
+  document.addEventListener('DOMContentLoaded', function() {
+      const csrfToken = getCookie('csrftoken');
+      
+      // Nettoyez les modals au chargement
+      cleanupModals();
+      
+      // Gestionnaire pour le bouton Enregistrer
+      document.getElementById('saveButton').addEventListener('click', function() {
+          const form = document.getElementById('elementForm');
+          const formData = new FormData(form);
+          const elementModal = document.getElementById('elementModal');
+          
+          fetch('{% url "save_element" %}', {
+              method: 'POST',
+              headers: {
+                  'X-CSRFToken': csrfToken
+              },
+              body: formData
+          })
+          .then(response => response.json())
+          .then(data => {
+              if (data.success) {
+                  showToast(data.message, 'success');
+                  refreshElementList();
+                  
+                  // Fermer de force le modal
+                  forceCloseModal(elementModal);
+              } else {
+                  showToast(data.message, 'danger');
+              }
+          })
+          .catch(error => {
+              console.error('Erreur:', error);
+              showToast('Une erreur est survenue', 'danger');
+          });
+      });
+      
+      // Gestionnaire pour le bouton Supprimer
+      document.getElementById('confirmDeleteButton').addEventListener('click', function() {
+          const code = this.getAttribute('data-code');
+          const deleteModal = document.getElementById('deleteModal');
+          
+          const formData = new FormData();
+          formData.append('codeElement', code);
+          
+          fetch('{% url "delete_element" %}', {
+              method: 'POST',
+              headers: {
+                  'X-CSRFToken': csrfToken
+              },
+              body: formData
+          })
+          .then(response => response.json())
+          .then(data => {
+              if (data.success) {
+                  showToast(data.message, 'success');
+                  refreshElementList();
+                  
+                  // Fermer de force le modal
+                  forceCloseModal(deleteModal);
+              } else {
+                  showToast(data.message, 'danger');
+              }
+          })
+          .catch(error => {
+              console.error('Erreur:', error);
+              showToast('Une erreur est survenue', 'danger');
+          });
+      });
+  });
+</script><!-- Toast Notifications -->
 <div class="toast-container position-fixed top-0 end-0 p-3">
     <div id="toastMessage" class="toast align-items-center text-white bg-success border-0" role="alert">
         <div class="d-flex">
@@ -377,272 +643,14 @@
   <!-- Custom js for this page-->
   <script src="{% static 'js/dashboard.js' %}"></script>
   <script src="{% static 'js/Chart.roundedBarCharts.js' %}"></script>
-  <script>
-    $(document).ready(function() {
-        // Initialise DataTables
-        $('#example').DataTable();
-    
-        let editMode = false;
-    
-        function showToast(message, success=true) {
-            let toastEl = $("#toastMessage");
-            toastEl.removeClass("bg-success bg-danger").addClass(success ? "bg-success" : "bg-danger");
-            toastEl.find(".toast-body").text(message);
-            let toast = new bootstrap.Toast(toastEl[0]);
-            toast.show();
-        }
-    
-        $("#element-form").submit(function(e) {
-            e.preventDefault();
-            let id = $("#element-id").val();
-            let url = id ? `/element/update/${id}/` : "{% url 'element_create' %}";
-            let method = "POST";
-    
-            $.ajax({
-                type: method,
-                url: url,
-                data: {
-                    codeElement: $("#codeElement").val(),
-                    nom: $("#nom").val(),
-                    csrfmiddlewaretoken: "{{ csrf_token }}"
-                },
-                success: function(response) {
-                    if (response.success) {
-                        if (id) {
-                            // Mise à jour d'un élément existant
-                            $(`tr[data-id="${id}"]`).html(`
-                                <td>${response.codeElement}</td>
-                                <td>${response.nom}</td>
-                                <td>
-                                    <button class="btn btn-warning btn-sm edit" data-id="${response.id}" data-bs-toggle="modal" data-bs-target="#elementModal">
-                                        <i class="fas fa-edit"></i> Modifier
-                                    </button>
-                                    <button class="btn btn-danger btn-sm delete" data-id="${response.id}">
-                                        <i class="fas fa-trash"></i> Supprimer
-                                    </button>
-                                </td>
-                            `);
-                        } else {
-                            // Ajout d'un nouvel élément
-                            $("#element-list").append(`
-                                <tr data-id="${response.id}">
-                                    <td>${response.codeElement}</td>
-                                    <td>${response.nom}</td>
-                                    <td>
-                                        <button class="btn btn-warning btn-sm edit" data-id="${response.id}" data-bs-toggle="modal" data-bs-target="#elementModal">
-                                            <i class="fas fa-edit"></i> Modifier
-                                        </button>
-                                        <button class="btn btn-danger btn-sm delete" data-id="${response.id}">
-                                            <i class="fas fa-trash"></i> Supprimer
-                                        </button>
-                                    </td>
-                                </tr>
-                            `);
-                        }
-                        showToast("Élément enregistré avec succès !");
-                        $("#element-form")[0].reset();
-                        $("#element-id").val("");
-                        $("#elementModal").modal("hide");
-                        $('#example').DataTable().clear().destroy(); // Réinitialise DataTable pour prendre en compte le nouveau contenu
-                        $('#example').DataTable(); // Redémarre DataTable
-                    } else {
-                        showToast("Erreur : " + JSON.stringify(response.errors), false);
-                    }
-                }
-            });
-        });
-    
-        $(document).on("click", ".edit", function() {
-            let id = $(this).data("id");
-            let row = $(`tr[data-id="${id}"]`);
-            $("#element-id").val(id);
-            $("#codeElement").val(row.find("td").eq(0).text());
-            $("#nom").val(row.find("td").eq(1).text());
-        });
-    
-        $(document).on("click", ".delete", function() {
-            let id = $(this).data("id");
-            $.ajax({
-                type: "POST",
-                url: `/element/delete/${id}/`,
-                data: { csrfmiddlewaretoken: "{{ csrf_token }}" },
-                success: function(response) {
-                    if (response.success) {
-                        $(`tr[data-id="${id}"]`).remove();
-                        showToast("Élément supprimé avec succès !");
-                        $('#example').DataTable().clear().destroy(); // Réinitialise DataTable pour mettre à jour la table
-                        $('#example').DataTable(); // Redémarre DataTable
-                    } else {
-                        showToast("Erreur lors de la suppression", false);
-                    }
-                }
-            });
-        });
-    });
-    </script>
+  <div id="toastMessage" class="toast position-fixed bottom-0 end-0 m-3" style="z-index: 1050;" data-bs-autohide="true">
+    <div class="toast-body"></div>
+</div>
 
-    <!-- Modal 1: Sélection du fichier CSV -->
-    <div class="modal fade" id="csvModal" tabindex="-1">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title">Importer un fichier CSV</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                </div>
-                <div class="modal-body">
-                    <input type="file" id="fileInput" accept=".csv" class="form-control">
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
-                    <button id="processFile" class="btn btn-success">Suivant</button>
-                </div>
-            </div>
-        </div>
-    </div>
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 
-    <!-- Modal 2: Sélection des colonnes -->
-    <div class="modal fade" id="columnsModal" tabindex="-1">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title">Sélectionner les colonnes à importer</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                </div>
-                <div class="modal-body">
-                    <form id="columnsForm"></form>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
-                    <button id="importData" class="btn btn-success">Importer</button>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Toast -->
-    <div id="toastContainer" class="toast align-items-center text-white bg-success" role="alert">
-        <div class="d-flex">
-            <div class="toast-body" id="toastMessage"></div>
-            <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
-        </div>
-    </div>
-
-    <script>
-        $(document).ready(function() {
-            let fileName = "";
-            let csvHeaders = [];
-
-            // Ouvrir la première modal
-            $("#openModal").click(function() {
-                $("#csvModal").modal("show");
-            });
-
-            // Lire le fichier CSV et extraire les en-têtes
-            $("#processFile").click(function() {
-                let file = $("#fileInput")[0].files[0];
-                if (!file) {
-                    showToast("Aucun fichier sélectionné !", "danger");
-                    return;
-                }
-
-                fileName = file.name;
-
-                // Lecture du fichier CSV
-                let reader = new FileReader();
-                reader.onload = function(event) {
-                    let text = event.target.result;
-                    let lines = text.split("\n");
-                    
-                    if (lines.length > 0) {
-                        csvHeaders = lines[0].split(",").map(h => h.trim());
-                        showColumnsModal(csvHeaders);
-                    } else {
-                        showToast("Fichier CSV vide ou incorrect !", "danger");
-                    }
-                };
-                reader.readAsText(file);
-
-                $("#csvModal").modal("hide");
-            });
-
-            // Affichage de la deuxième modal avec les colonnes à sélectionner
-            function showColumnsModal(headers) {
-                let form = $("#columnsForm");
-                form.empty();
-
-                headers.forEach((header, index) => {
-                    let checkbox = `
-                        <div class="form-check">
-                            <input class="form-check-input" type="checkbox" value="${header}" id="col${index}" checked>
-                            <label class="form-check-label" for="col${index}">${header}</label>
-                        </div>
-                    `;
-                    form.append(checkbox);
-                });
-
-                $("#columnsModal").modal("show");
-            }
-
-            // Validation de l'importation
-            $("#importData").click(function() {
-                let selectedColumns = [];
-                $("#columnsForm input:checked").each(function() {
-                    selectedColumns.push($(this).val());
-                });
-
-                if (selectedColumns.length === 0) {
-                    showToast("Veuillez sélectionner au moins une colonne !", "danger");
-                    return;
-                }
-
-                showToast("Importation réussie des colonnes : " + selectedColumns.join(", "), "success");
-
-                // Fermer la modal
-                $("#columnsModal").modal("hide");
-            });
-
-            // Fonction pour afficher un toast
-            function showToast(message, type) {
-                $("#toastMessage").text(message);
-                $("#toastContainer").removeClass("bg-success bg-danger").addClass("bg-" + type);
-                let toast = new bootstrap.Toast(document.getElementById("toastContainer"));
-                toast.show();
-            }
-        });
-        $("#importData").click(function() {
-            let selectedColumns = [];
-            $("#columnsForm input:checked").each(function() {
-                selectedColumns.push($(this).val());
-            });
-        
-            if (selectedColumns.length === 0) {
-                showToast("Veuillez sélectionner au moins une colonne !", "danger");
-                return;
-            }
-        
-            let file = $("#fileInput")[0].files[0];
-            let formData = new FormData();
-            formData.append("csv_file", file);
-            formData.append("columns", JSON.stringify(selectedColumns));
-        
-            $.ajax({
-                url: "/element/import-csv/",  // URL de la vue Django
-                type: "POST",
-                data: formData,
-                processData: false,
-                contentType: false,
-                success: function(response) {
-                    showToast("Importation réussie !", "success");
-                    $("#columnsModal").modal("hide");
-                },
-                error: function(xhr) {
-                    showToast("Erreur d'importation !", "danger");
-                }
-            });
-        });
-        
-    </script>
-
+  
 
   <!-- End custom js for this page-->
 </body>

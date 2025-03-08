@@ -1,0 +1,39 @@
+{%load static %}
+{%include 'head.html'%}
+{% comment %} <form method="post">
+    {% csrf_token %}
+    <label for="database_name">Nom de la base de données :</label>
+    <input type="text" id="database_name" name="database_name" required>
+    <label for="user">username :</label>
+    <input type="text" id="user" name="user" required>
+    <label for="password">MDP :</label>
+    <input type="text" id="password" name="password" required>
+    <button type="submit">Se connecter</button>
+</form> {% endcomment %}
+<div class="col-md-6 grid-margin stretch-card">
+    <div class="card">
+      <div class="card-body">
+        <h4 class="card-title">Importer une base de donnees</h4>
+        <form class="forms-sample" method="post">
+            {% csrf_token %}
+          <div class="form-group">
+            <label for="database_name">DB name</label>
+            <input type="text" name="database_name" required class="form-control" id="database_name" placeholder="DB name">
+          </div>
+          <div class="form-group">
+            <label for="user">Nom d'utilisateur</label>
+            <input type="text" class="form-control" id="user" name="user" required placeholder="username">
+          </div>
+          <div class="form-group">
+            <label for="password">Mot de passe</label>
+            <input type="password" class="form-control" id="password" name="password" required placeholder="Password">
+          </div>
+          <button type="submit" class="btn btn-primary mr-2">Se connecter</button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+{% if error %}
+<p style="color: red;">{{ error }}</p>
+{% endif %}

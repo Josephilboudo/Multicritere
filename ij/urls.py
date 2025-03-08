@@ -14,9 +14,10 @@ Including another URLconf
     1. Import the include() function: from django.urls import include, path
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
+from django import views
 from django.contrib import admin
 from django.urls import include, path
-from .views import home, element, ressource, critere, element_create, element_update, element_delete, ressource_create, ressource_delete, ressource_update, import_csv, import_csv_ressource
+from .views import connect_database, delete_element, element_list, home, element, ressource, critere,ressource_create, ressource_delete, ressource_update, import_csv, import_csv_ressource, save_element, get_elements_json, get_table_data, import_elements
 
 urlpatterns = [
     path('admin/', admin.site.urls),
@@ -25,12 +26,17 @@ urlpatterns = [
     path('ressource/', ressource, name="ressource"),
     path('critere/', critere, name="critere"),
     path('auth/', include('authentification.urls')),
-    path('element/create/', element_create, name='element_create'),
-    path('element/update/<int:id>/', element_update, name='element_update'),
-    path('element/delete/<int:id>/', element_delete, name='element_delete'),
+
     path("element/import-csv/", import_csv, name="import_csv"),
     path("ressource/import-csv/", import_csv_ressource, name="import_csv_ressource"),
     path('ressource/create/', ressource_create, name='ressource_create'),
     path('ressource/update/<int:id>/', ressource_update, name='ressource_update'),
     path('ressource/delete/<int:id>/', ressource_delete, name='ressource_delete'),
+    path("connect-db/", connect_database, name="connect_database"),
+    path('elements/', element_list, name='element_list'),
+    path('elements/json/', get_elements_json, name='get_elements_json'),
+    path('elements/save/', save_element, name='save_element'),
+    path('elements/delete/', delete_element, name='delete_element'),
+    path('get_table_data/', get_table_data, name='get_table_data'),
+    path('import_elements/', import_elements, name='import_elements'),
 ]

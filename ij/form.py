@@ -9,4 +9,4 @@ class FichierCSVForm(forms.Form):
 class ElementForm(forms.ModelForm):
     class Meta:
         model = Element
-        fields = ['codeElement', 'nom']
+        fields = ['codeElement', 'description']

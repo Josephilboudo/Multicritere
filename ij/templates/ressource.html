@@ -298,12 +298,12 @@
             {% for ressource in ressources %}
             <tr data-id="{{ ressource.id }}">
                 <td>{{ ressource.codeRessource }}</td>
-                <td>{{ ressource.nom }}</td>
+                <td>{{ ressource.description }}</td>
                 <td>
-                    <button class="btn btn-warning btn-sm edit" data-id="{{ ressource.id }}" data-bs-toggle="modal" data-bs-target="#ressourceModal">
+                    <button class="btn btn-warning btn-sm edit" data-id="{{ ressource.codeRessource }}" data-bs-toggle="modal" data-bs-target="#ressourceModal">
                         <i class="fas fa-edit"></i> Modifier
                     </button>
-                    <button class="btn btn-danger btn-sm delete" data-id="{{ ressource.id }}">
+                    <button class="btn btn-danger btn-sm delete" data-id="{{ ressource.codeRessource }}">
                         <i class="fas fa-trash"></i> Supprimer
                     </button>
                 </td>
@@ -330,14 +330,13 @@
             </div>
             <div class="modal-body">
                 <form id="ressource-form">
-                    <input type="hidden" id="ressource-id">
                     <div class="mb-3">
                         <label for="codeRessource" class="form-label">Code Ressource</label>
                         <input type="text" class="form-control" id="codeRessource" required>
                     </div>
                     <div class="mb-3">
-                        <label for="nom" class="form-label">Nom</label>
-                        <input type="text" class="form-control" id="nom" required>
+                        <label for="description" class="form-label">Description</label>
+                        <input type="text" class="form-control" id="description" required>
                     </div>
                     <button type="submit" class="btn btn-success">Enregistrer</button>
                 </form>
@@ -394,7 +393,7 @@
     
         $("#ressource-form").submit(function(e) {
             e.preventDefault();
-            let id = $("#ressource-id").val();
+            let id = $("#codeRessource").val();
             let url = id ? `/ressource/update/${id}/` : "{% url 'ressource_create' %}";
             let method = "POST";
     
@@ -403,7 +402,7 @@
                 url: url,
                 data: {
                     codeRessource: $("#codeRessource").val(),
-                    nom: $("#nom").val(),
+                    description: $("#description").val(),
                     csrfmiddlewaretoken: "{{ csrf_token }}"
                 },
                 success: function(response) {
@@ -412,7 +411,7 @@
                             // Mise à jour d'un ressource existant
                             $(`tr[data-id="${id}"]`).html(`
                                 <td>${response.codeRessource}</td>
-                                <td>${response.nom}</td>
+                                <td>${response.description}</td>
                                 <td>
                                     <button class="btn btn-warning btn-sm edit" data-id="${response.id}" data-bs-toggle="modal" data-bs-target="#ressourceModal">
                                         <i class="fas fa-edit"></i> Modifier
@@ -427,7 +426,7 @@
                             $("#ressource-list").append(`
                                 <tr data-id="${response.id}">
                                     <td>${response.codeRessource}</td>
-                                    <td>${response.nom}</td>
+                                    <td>${response.description}</td>
                                     <td>
                                         <button class="btn btn-warning btn-sm edit" data-id="${response.id}" data-bs-toggle="modal" data-bs-target="#ressourceModal">
                                             <i class="fas fa-edit"></i> Modifier
@@ -441,7 +440,7 @@
                         }
                         showToast("Élément enregistré avec succès !");
                         $("#ressource-form")[0].reset();
-                        $("#ressource-id").val("");
+                        $("#codeRessource").val("");
                         $("#ressourceModal").modal("hide");
                         $('#example').DataTable().clear().destroy(); // Réinitialise DataTable pour prendre en compte le nouveau contenu
                         $('#example').DataTable(); // Redémarre DataTable
