@@ -17,7 +17,7 @@ Including another URLconf
 from django import views
 from django.contrib import admin
 from django.urls import include, path
-from .views import connect_database, delete_element, element_list, get_table_columns, get_tables, home, element, ressource, critere,ressource_create, ressource_delete, ressource_update, save_element, get_elements_json, get_table_data, import_elements
+from .views import connect_database, connect_to_external_db, delete_element, element_list, get_columns, get_table_columns, get_tables, home, element, import_data, ressource, critere,ressource_create, ressource_delete, ressource_update, save_element, get_elements_json, get_table_data, import_elements
 
 urlpatterns = [
     path('admin/', admin.site.urls),
@@ -38,4 +38,16 @@ urlpatterns = [
     path('get_tables/', get_tables, name='get_tables'),
     path('get_table_columns/', get_table_columns, name='get_table_columns'),
     path('import_elements/', import_elements, name='import_elements'),
+    
+    # URL pour établir la connexion à la base de données externe
+    path('connect_to_external_db/', connect_to_external_db, name='connect_to_external_db'),
+
+    # URL pour récupérer les tables de la base de données externe
+    path('get_tables/', get_tables, name='get_tables'),
+
+    # URL pour récupérer les colonnes d'une table spécifique
+    path('get_columns/', get_columns, name='get_columns'),
+
+    # URL pour importer les données dans la base de données Django
+    path('import_data/', import_data, name='import_data'),
 ]
