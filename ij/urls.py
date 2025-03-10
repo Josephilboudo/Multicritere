@@ -17,7 +17,7 @@ Including another URLconf
 from django import views
 from django.contrib import admin
 from django.urls import include, path
-from .views import connect_database, connect_to_external_db, delete_element, delete_ressource, element_list, get_columns, get_ressource_json, get_table_columns, get_tables, home, element, import_data, ressource, critere,ressource_create, ressource_delete, ressource_update, save_element, get_elements_json, import_elements, import_dataRessource, save_ressource
+from .views import connect_database, connect_to_external_db, delete_element, delete_ressource, element_list, get_columns, get_ressource_json, get_table_columns, get_tables, home, element, import_data, ressource, critere, save_element, get_elements_json, import_elements, import_dataRessource, save_ressource
 
 urlpatterns = [
     path('admin/', admin.site.urls),
@@ -26,15 +26,13 @@ urlpatterns = [
     path('ressource/', ressource, name="ressource"),
     path('critere/', critere, name="critere"),
     path('auth/', include('authentification.urls')),
-    path('ressource/create/', ressource_create, name='ressource_create'),
-    path('ressource/update/<int:id>/', ressource_update, name='ressource_update'),
-    path('ressource/delete/<int:id>/', ressource_delete, name='ressource_delete'),
     path("connect-db/", connect_database, name="connect_database"),
     path('elements/', element_list, name='element_list'),
     path('elements/json/', get_elements_json, name='get_elements_json'),
     path('elements/save/', save_element, name='save_element'),
     path('elements/delete/', delete_element, name='delete_element'),
     
+    #depuis la base de donnees externe
     path('get_tables/', get_tables, name='get_tables'),
     path('get_table_columns/', get_table_columns, name='get_table_columns'),
     path('import_elements/', import_elements, name='import_elements'),
@@ -51,8 +49,6 @@ urlpatterns = [
 
     # URL pour importer les données dans la base de données Django
     path('ressource/import_data/', import_dataRessource, name='import_dataRessource'),
-    
-    
     path('ressource/save/', save_ressource, name='save_ressource'),
     path('ressource/delete/', delete_ressource, name='delete_ressource'),
     path('ressource/json/', get_ressource_json, name='get_ressource_json'),
