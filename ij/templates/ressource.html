@@ -30,81 +30,747 @@
             </div>
           </div>
           <div class="row">
+            <div class="col-md-6 grid-margin stretch-card">
+              <div class="card tale-bg">
+                <div class="card-people mt-auto">
+                  <img src="{% static 'images/dashboard/people.svg' %}" alt="people">
+                  <div class="weather-info">
+                    <div class="d-flex">
+                      <div>
+                        <h2 class="mb-0 font-weight-normal"><i class="icon-sun mr-2"></i>31<sup>C</sup></h2>
+                      </div>
+                      <div class="ml-2">
+                        <h4 class="location font-weight-normal">Bangalore</h4>
+                        <h6 class="font-weight-normal">India</h6>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="col-md-6 grid-margin transparent">
+              <div class="row">
+                <div class="col-md-6 mb-4 stretch-card transparent">
+                  <div class="card card-tale">
+                    <div class="card-body">
+                      <p class="mb-4">Total Elements</p>
+                      <p class="fs-30 mb-2">{{ total_elements }}</p>
+                    </div>
+                  </div>
+                </div>
+                <div class="col-md-6 mb-4 stretch-card transparent">
+                  <div class="card card-dark-blue">
+                    <div class="card-body">
+                      <p class="mb-4">Total Ressources</p>
+                      <p class="fs-30 mb-2">{{ total_ressources }}</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div class="row">
+                <div class="col-md-6 mb-4 mb-lg-0 stretch-card transparent">
+                  <div class="card card-light-blue">
+                    <div class="card-body">
+                      <p class="mb-4">Total Criteres</p>
+                      <p class="fs-30 mb-2">{{ total_criteres }}</p>
+                    </div>
+                  </div>
+                </div>
+                <div class="col-md-6 stretch-card transparent">
+                  <div class="card card-light-danger">
+                    <div class="card-body">
+                      <p class="mb-4">Total Contraintes</p>
+                      <p class="fs-30 mb-2">{{ total_contraintes }}</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="row">
     <div class="col-md-12 grid-margin stretch-card">
         <div class="card">
             <div class="card-body">
-                <p class="card-title">Liste des ressources</p>
                 <div class="row">
                     <div class="col-12">
                         <!-- Bouton pour ouvrir la modal d'ajout -->
-    <button class="btn btn-primary mb-3" data-bs-toggle="modal" data-bs-target="#ressourceModal">
-        <i class="fas fa-plus"></i> Ajouter une ressource
+  <h2>Liste des Ressources</h2>
+  <div class="d-flex justify-content-between mb-3">
+    <!-- Bouton gauche -->
+    <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#elementModal" onclick="resetForm()">
+        <i class="fas fa-plus"></i>
     </button>
-    <div class="container mt-4">
-        <button id="openModal" class="btn btn-primary">Import from CSV</button>
-    </div>
-                        <div class="table-responsive">
-                            <table class="display expandable-table table table-striped table-bordered" style="width:100%">
-                                <thead>
-                                    <tr>
-                                        <th>Code</th>
-                                        <th>Nom</th>
-                                        <th>Actions</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="ressource-list">
-                                            <tbody id="ressource-list">
-            {% for ressource in ressources %}
-            <tr data-id="{{ ressource.id }}">
-                <td>{{ ressource.codeRessource }}</td>
-                <td>{{ ressource.description }}</td>
-                <td>
-                    <button class="btn btn-warning btn-sm edit" data-id="{{ ressource.codeRessource }}" data-bs-toggle="modal" data-bs-target="#ressourceModal">
-                        <i class="fas fa-edit"></i> Modifier
-                    </button>
-                    <button class="btn btn-danger btn-sm delete" data-id="{{ ressource.codeRessource }}">
-                        <i class="fas fa-trash"></i> Supprimer
-                    </button>
-                </td>
-            </tr>
-            {% endfor %}
-        </tbody>
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
+
+    <!-- Bouton droite (vert) -->
+    <button type="button" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#connectDatabaseModal">
+        <i class="fas fa-database"></i>
+    </button>
 </div>
 
-<!-- Modal pour Ajouter/Modifier -->
-<div class="modal fade" id="ressourceModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">Ajouter un Élément</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body">
-                <form id="ressource-form">
-                    <div class="mb-3">
-                        <label for="codeRessource" class="form-label">Code Ressource</label>
-                        <input type="text" class="form-control" id="codeRessource" required>
-                    </div>
-                    <div class="mb-3">
-                        <label for="description" class="form-label">Description</label>
-                        <input type="text" class="form-control" id="description" required>
-                    </div>
-                    <button type="submit" class="btn btn-success">Enregistrer</button>
-                </form>
-            </div>
-        </div>
-    </div>
+  <div id="element-list-container">
+      <table class="table table-striped">
+          <thead>
+              <tr>
+                  <th>Code</th>
+                  <th>Description</th>
+                  <th>Actions</th>
+              </tr>
+          </thead>
+          <tbody>
+              {% for ressource in ressources %}
+              <tr>
+                  <td>{{ ressource.codeRessource }}</td>
+                  <td>{{ ressource.description }}</td>
+                  <td>
+                      <button class="btn btn-info btn-sm" onclick="editElement('{{ ressource.codeRessource }}', '{{ resource.description }}')">
+                          <i class="fas fa-edit"></i>
+                      </button>
+                      <button class="btn btn-danger btn-sm" onclick="deleteElement('{{ ressource.codeRessource }}')">
+                          <i class="fas fa-trash"></i>
+                      </button>
+                  </td>
+              </tr>
+              {% empty %}
+              <tr>
+                  <td colspan="3" class="text-center">Aucun élément disponible</td>
+              </tr>
+              {% endfor %}
+          </tbody>
+      </table>
+  </div>
 </div>
 
-<!-- Toast Notifications -->
+<!-- Modal pour CRUD -->
+<div class="modal fade" id="elementModal" tabindex="-1" aria-labelledby="elementModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+      <div class="modal-content">
+          <div class="modal-header">
+              <h5 class="modal-title" id="elementModalLabel">Ajouter/Modifier une ressource</h5>
+              <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <form id="elementForm">
+              {% csrf_token %}
+              <div class="modal-body">
+                  <input type="hidden" name="action" id="formAction" value="add">
+                  
+                  <div class="mb-3">
+                      <label for="codeElement" class="form-label">Code de la ressource</label>
+                      <input type="text" class="form-control" id="codeRessource" name="codeRessource" required>
+                  </div>
+                  
+                  <div class="mb-3">
+                      <label for="description" class="form-label">Description</label>
+                      <input type="text" class="form-control" id="description" name="description" required>
+                  </div>
+              </div>
+              <div class="modal-footer">
+                  <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+                  <button type="button" id="saveButton" class="btn btn-primary">Enregistrer</button>
+              </div>
+          </form>
+      </div>
+  </div>
+</div>
+
+<!-- Modal de confirmation de suppression -->
+<div class="modal fade" id="deleteModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog">
+      <div class="modal-content">
+          <div class="modal-header">
+              <h5 class="modal-title">Confirmer la suppression</h5>
+              <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body">
+              Êtes-vous sûr de vouloir supprimer cette ressource ?
+          </div>
+          <div class="modal-footer">
+              <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+              <button type="button" id="confirmDeleteButton" class="btn btn-danger">Supprimer</button>
+          </div>
+      </div>
+  </div>
+</div>
+
+<!-- Modal pour l'importation de la base de données -->
+<!-- Modal pour la connexion à la base de données -->
+<div class="modal fade" id="connectDatabaseModal" tabindex="-1" aria-labelledby="connectDatabaseModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="connectDatabaseModalLabel">Connexion à la base de données</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <form id="connectDatabaseForm">
+          <div class="mb-3">
+            <label for="dbName" class="form-label">Nom de la base de données</label>
+            <input type="text" class="form-control" id="dbName" name="dbName" required>
+          </div>
+          <div class="mb-3">
+            <label for="dbUser" class="form-label">Utilisateur</label>
+            <input type="text" class="form-control" id="dbUser" name="dbUser" required>
+          </div>
+          <div class="mb-3">
+            <label for="dbPassword" class="form-label">Mot de passe</label>
+            <input type="password" class="form-control" id="dbPassword" name="dbPassword" required>
+          </div>
+          <div class="mb-3">
+            <label for="dbHost" class="form-label">Hôte</label>
+            <input type="text" class="form-control" id="dbHost" name="dbHost" required>
+          </div>
+          <div class="mb-3">
+            <label for="dbPort" class="form-label">Port</label>
+            <input type="text" class="form-control" id="dbPort" name="dbPort" required>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fermer</button>
+        <button type="button" class="btn btn-primary" id="connectDatabaseButton">Se connecter</button>
+      </div>
+    </div>
+  </div>
+</div>
+<!-- Modal pour sélectionner une table -->
+<div class="modal fade" id="selectTableModal" tabindex="-1" aria-labelledby="selectTableModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="selectTableModalLabel">Sélectionner une table</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <form id="selectTableForm">
+          <div class="mb-3">
+            <label for="tableSelect" class="form-label">Table</label>
+            <select class="form-select" id="tableSelect" name="tableSelect" required>
+              <option value="">-- Choisir une table --</option>
+              <!-- Les options des tables seront ajoutées dynamiquement -->
+            </select>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fermer</button>
+        <button type="button" class="btn btn-primary" id="selectTableButton">Valider</button>
+      </div>
+    </div>
+  </div>
+</div>
+<!-- Modal pour le mapping des champs -->
+<div class="modal fade" id="mappingFieldsModal" tabindex="-1" aria-labelledby="mappingFieldsModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="mappingFieldsModalLabel">Mapping des champs</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <form id="mappingFieldsForm">
+          <div class="mb-3">
+            <label for="codeElementColumn" class="form-label">Colonne pour Code Ressource</label>
+            <select class="form-select" id="codeElementColumn" name="codeElementColumn" required>
+              <!-- Les colonnes seront ajoutées dynamiquement -->
+            </select>
+          </div>
+          <div class="mb-3">
+            <label for="descriptionColumn" class="form-label">Colonne pour Description</label>
+            <select class="form-select" id="descriptionColumn" name="descriptionColumn" required>
+              <!-- Les colonnes seront ajoutées dynamiquement -->
+            </select>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fermer</button>
+        <button type="button" class="btn btn-primary" id="importDataButton">Importer</button>
+      </div>
+    </div>
+  </div>
+</div>
+<!-- Toast pour les erreurs -->
+<div id="errorToast" class="toast" role="alert" aria-live="assertive" aria-atomic="true">
+  <div class="toast-header bg-danger text-white">
+      <strong class="me-auto">Erreur</strong>
+      <button type="button" class="btn-close btn-close-white" data-bs-dismiss="toast" aria-label="Close"></button>
+  </div>
+  <div class="toast-body">
+      <!-- Le message d'erreur sera inséré ici -->
+  </div>
+</div>
+<!-- Toast pour les succès -->
+<div id="successToast" class="toast" role="alert" aria-live="assertive" aria-atomic="true">
+  <div class="toast-header bg-success text-white">
+      <strong class="me-auto">Succès</strong>
+      <button type="button" class="btn-close btn-close-white" data-bs-dismiss="toast" aria-label="Close"></button>
+  </div>
+  <div class="toast-body">
+      <!-- Le message de succès sera inséré ici -->
+  </div>
+</div>
+
+
+<!-- Container pour les toasts -->
+<div class="toast-container"></div>
+<!--script pour importation depuis dase de donnees-->
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    const connectButton = document.getElementById('connectDatabaseButton');
+    const selectTableButton = document.getElementById('selectTableButton');
+    const importDataButton = document.getElementById('importDataButton');
+    const tableSelect = document.getElementById('tableSelect');
+    const codeElementColumn = document.getElementById('codeElementColumn');
+    const descriptionColumn = document.getElementById('descriptionColumn');
+
+    let selectedTable = null;
+
+    // Fonction pour afficher un toast de succès
+    function showSuccessToast(message) {
+      const successToast = document.getElementById('successToast');
+      const toastBody = successToast.querySelector('.toast-body');
+      toastBody.textContent = message;
+
+      const toast = new bootstrap.Toast(successToast);
+      toast.show();
+    }
+
+    // Fonction pour afficher un toast d'erreur
+    function showErrorToast(message) {
+      const errorToast = document.getElementById('errorToast');
+      const toastBody = errorToast.querySelector('.toast-body');
+      toastBody.textContent = message;
+
+      const toast = new bootstrap.Toast(errorToast);
+      toast.show();
+    }
+
+    // Étape 1 : Connexion à la base de données
+    connectButton.addEventListener('click', async function () {
+      const dbName = document.getElementById('dbName').value;
+      const dbUser = document.getElementById('dbUser').value;
+      const dbPassword = document.getElementById('dbPassword').value;
+      const dbHost = document.getElementById('dbHost').value;
+      const dbPort = document.getElementById('dbPort').value;
+
+      try {
+        // Établir la connexion
+        const connectionResponse = await fetch("{% url 'connect_to_external_db' %}", {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCookie('csrftoken')
+          },
+          body: JSON.stringify({
+            dbName: dbName,
+            dbUser: dbUser,
+            dbPassword: dbPassword,
+            dbHost: dbHost,
+            dbPort: dbPort
+          })
+        });
+
+        const connectionData = await connectionResponse.json();
+        if (connectionData.status === 'success') {
+          showSuccessToast("Connexion réussie !");
+
+          // Fermer le modal de connexion
+          const connectModal = bootstrap.Modal.getInstance(document.getElementById('connectDatabaseModal'));
+          connectModal.hide();
+
+          // Ouvrir le modal de sélection de table
+          const selectTableModal = new bootstrap.Modal(document.getElementById('selectTableModal'));
+          selectTableModal.show();
+
+          // Charger les tables disponibles
+          const tablesResponse = await fetch("{% url 'get_tables' %}", {
+            method: 'GET',
+            headers: {
+              'Content-Type': 'application/json',
+              'X-CSRFToken': getCookie('csrftoken')
+            }
+          });
+
+          const tablesData = await tablesResponse.json();
+          if (tablesData.status === 'success') {
+            tableSelect.innerHTML = '<option value="">-- Choisir une table --</option>';
+            tablesData.tables.forEach(table => {
+              const option = document.createElement('option');
+              option.value = table;
+              option.textContent = table;
+              tableSelect.appendChild(option);
+            });
+          } else {
+            showErrorToast("Erreur : " + tablesData.message);
+          }
+        } else {
+          showErrorToast("Erreur : " + connectionData.message);
+        }
+      } catch (error) {
+        console.error('Erreur:', error);
+        showErrorToast("Une erreur est survenue lors de la connexion.");
+      }
+    });
+
+    // Étape 2 : Sélection de la table
+    selectTableButton.addEventListener('click', async function () {
+      selectedTable = tableSelect.value;
+
+      if (!selectedTable) {
+        showErrorToast("Veuillez sélectionner une table.");
+        return;
+      }
+
+      try {
+        // Récupérer les colonnes de la table sélectionnée
+        const columnsResponse = await fetch("{% url 'get_table_columns' %}", {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCookie('csrftoken')
+          },
+          body: JSON.stringify({
+            tableName: selectedTable
+          })
+        });
+
+        const columnsData = await columnsResponse.json();
+        if (columnsData.status === 'success') {
+          // Remplir les options de mapping
+          codeElementColumn.innerHTML = '';
+          descriptionColumn.innerHTML = '';
+          columnsData.columns.forEach(column => {
+            const option = document.createElement('option');
+            option.value = column;
+            option.textContent = column;
+            codeElementColumn.appendChild(option.cloneNode(true));
+            descriptionColumn.appendChild(option.cloneNode(true));
+          });
+
+          // Fermer le modal de sélection de table
+          const selectTableModal = bootstrap.Modal.getInstance(document.getElementById('selectTableModal'));
+          selectTableModal.hide();
+
+          // Ouvrir le modal de mapping des champs
+          const mappingFieldsModal = new bootstrap.Modal(document.getElementById('mappingFieldsModal'));
+          mappingFieldsModal.show();
+        } else {
+          showErrorToast("Erreur : " + columnsData.message);
+        }
+      } catch (error) {
+        console.error('Erreur:', error);
+        showErrorToast("Une erreur est survenue lors de la récupération des colonnes.");
+      }
+    });
+
+    // Étape 3 : Importation des données
+    importDataButton.addEventListener('click', async function () {
+      const codeElementCol = codeElementColumn.value;
+      const descriptionCol = descriptionColumn.value;
+
+      if (!codeElementCol || !descriptionCol) {
+        showErrorToast("Veuillez mapper tous les champs.");
+        return;
+      }
+
+      try {
+        // Importer les données
+        const importResponse = await fetch("{% url 'import_dataRessource' %}", {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCookie('csrftoken')
+            },
+            body: JSON.stringify({
+                tableName: selectedTable,
+                codeColumn: codeElementCol,
+                descriptionColumn: descriptionCol
+            })
+        });
+    
+        const importData = await importResponse.json();
+        if (importData.status === 'success') {
+            showSuccessToast("Données importées avec succès !");
+    
+            // Fermer le modal de mapping
+            const mappingFieldsModal = bootstrap.Modal.getInstance(document.getElementById('mappingFieldsModal'));
+            mappingFieldsModal.hide();
+    
+            // Nettoyer manuellement le backdrop
+            // Fermer de force le modal et enlever le voile noir
+        forceCloseModal(document.getElementById('elementModal'));
+            
+        } else {
+            showErrorToast("Erreur : " + importData.message);
+        }
+    } catch (error) {
+        console.error('Erreur:', error);
+        showErrorToast("Une erreur est survenue lors de l'importation.");
+    }
+    });
+  });
+
+  // Fonction pour récupérer le token CSRF
+  function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+      const cookies = document.cookie.split(';');
+      for (let i = 0; i < cookies.length; i++) {
+        const cookie = cookies[i].trim();
+        if (cookie.substring(0, name.length + 1) === (name + '=')) {
+          cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+          break;
+        }
+      }
+    }
+    return cookieValue;
+  }
+</script>
+
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+  // Réinitialiser le formulaire pour l'ajout
+  function resetForm() {
+      document.getElementById('elementForm').reset();
+      document.getElementById('formAction').value = 'add';
+      document.getElementById('codeRessource').readOnly = false;
+      document.getElementById('elementModalLabel').textContent = 'Ajouter une ressource';
+  }
+  
+  // Préremplir le formulaire pour la modification
+  function editElement(code, description) {
+      document.getElementById('formAction').value = 'edit';
+      document.getElementById('codeRessource').value = code;
+      document.getElementById('codeRessource').readOnly = true;
+      document.getElementById('description').value = description;
+      document.getElementById('elementModalLabel').textContent = 'Modifier une ressource';
+      
+      var modal = new bootstrap.Modal(document.getElementById('elementModal'));
+      modal.show();
+  }
+  
+  // Obtenir le token CSRF
+  function getCookie(name) {
+      let cookieValue = null;
+      if (document.cookie && document.cookie !== '') {
+          const cookies = document.cookie.split(';');
+          for (let i = 0; i < cookies.length; i++) {
+              const cookie = cookies[i].trim();
+              if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                  cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                  break;
+              }
+          }
+      }
+      return cookieValue;
+  }
+  
+  // Configurer la suppression
+  function deleteElement(code) {
+      document.getElementById('confirmDeleteButton').setAttribute('data-code', code);
+      var modal = new bootstrap.Modal(document.getElementById('deleteModal'));
+      modal.show();
+  }
+  
+  // Afficher un toast
+  function showToast(message, type) {
+      const toastContainer = document.querySelector('.toast-container');
+      const toast = document.createElement('div');
+      toast.classList.add('toast', 'show');
+      toast.setAttribute('role', 'alert');
+      toast.setAttribute('aria-live', 'assertive');
+      toast.setAttribute('aria-atomic', 'true');
+      
+      toast.innerHTML = `
+          <div class="toast-header bg-${type} text-white">
+              <strong class="me-auto">Notification</strong>
+              <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Close"></button>
+          </div>
+          <div class="toast-body">
+              ${message}
+          </div>
+      `;
+      
+      toastContainer.appendChild(toast);
+      
+      setTimeout(() => {
+          const bsToast = new bootstrap.Toast(toast);
+          bsToast.hide();
+          setTimeout(() => {
+              toast.remove();
+          }, 500);
+      }, 5000);
+  }
+  
+  // Construire le HTML du tableau à partir des données JSON
+  function buildTableHTML(ressources) {
+      let html = `
+          <table class="table table-striped">
+              <thead>
+                  <tr>
+                      <th>Code</th>
+                      <th>Description</th>
+                      <th>Actions</th>
+                  </tr>
+              </thead>
+              <tbody>`;
+      
+      if (ressources.length === 0) {
+          html += `
+              <tr>
+                  <td colspan="3" class="text-center">Aucun élément disponible</td>
+              </tr>`;
+      } else {
+          ressources.forEach(ressource => {
+              html += `
+                  <tr>
+                      <td>${ressource.codeRessource}</td>
+                      <td>${ressource.description}</td>
+                      <td>
+                          <button class="btn btn-info btn-sm" onclick="editElement('${ressource.codeRessource}', '${ressource.description}')">
+                              <i class="fas fa-edit"></i>
+                          </button>
+                          <button class="btn btn-danger btn-sm" onclick="deleteElement('${ressource.codeRessource}')">
+                              <i class="fas fa-trash"></i>
+                          </button>
+                      </td>
+                  </tr>`;
+          });
+      }
+      
+      html += `
+              </tbody>
+          </table>`;
+      
+      return html;
+  }
+  
+  // Recharger la liste des éléments
+  function refreshElementList() {
+      fetch('{% url "get_ressource_json" %}')
+          .then(response => response.json())
+          .then(data => {
+            console.log("Données reçues :", data);
+              if (data.success) {
+                  const tableHTML = buildTableHTML(data.ressources);
+                  document.getElementById('element-list-container').innerHTML = tableHTML;
+              } else {
+                  showToast('Erreur lors du chargement des données', 'danger');
+              }
+          })
+          .catch(error => {
+              console.error('Erreur lors du rechargement de la liste:', error);
+              showToast('Erreur lors du rechargement de la liste', 'danger');
+          });
+  }
+  
+  // Fonction pour nettoyer les modals et backdrops
+  function cleanupModals() {
+      // Supprime toutes les modal-backdrop
+      document.querySelectorAll('.modal-backdrop').forEach(el => el.remove());
+      
+      // Réinitialise le body
+      document.body.classList.remove('modal-open');
+      document.body.style.overflow = '';
+      document.body.style.paddingRight = '';
+  }
+  
+  // Force la fermeture d'un modal et nettoie l'overlay
+function forceCloseModal(modalElement) {
+  if (!modalElement) return;
+
+  let modalInstance = bootstrap.Modal.getInstance(modalElement);
+  if (modalInstance) {
+      modalInstance.hide();
+  } else {
+      modalElement.classList.remove('show');
+      modalElement.setAttribute('aria-hidden', 'true');
+      modalElement.style.display = 'none';
+  }
+
+  // Supprimer les overlays restants après 300ms (temps d'animation Bootstrap)
+  setTimeout(() => {
+      document.querySelectorAll('.modal-backdrop').forEach(el => el.remove());
+      document.body.classList.remove('modal-open');
+      document.body.style.overflow = '';
+      document.body.style.paddingRight = '';
+  }, 300);
+}
+
+  
+  // Configurer les événements au chargement de la page
+  document.addEventListener('DOMContentLoaded', function() {
+      const csrfToken = getCookie('csrftoken');
+      
+      // Nettoyez les modals au chargement
+      cleanupModals();
+      
+      // Gestionnaire pour le bouton Enregistrer
+      document.getElementById('saveButton').addEventListener('click', function() {
+          const form = document.getElementById('elementForm');
+          const formData = new FormData(form);
+          const elementModal = document.getElementById('elementModal');
+          
+          fetch('{% url "save_ressource" %}', {
+              method: 'POST',
+              headers: {
+                  'X-CSRFToken': csrfToken
+              },
+              body: formData
+          })
+          .then(response => response.json())
+          .then(data => {
+              if (data.success) {
+                  showToast(data.message, 'success');
+                  refreshElementList();
+                  
+                  // Fermer de force le modal
+                  forceCloseModal(elementModal);
+              } else {
+                  showToast(data.message, 'danger');
+              }
+          })
+          .catch(error => {
+              console.error('Erreur:', error);
+              showToast('Une erreur est survenue', 'danger');
+          });
+      });
+      
+      // Gestionnaire pour le bouton Supprimer
+      document.getElementById('confirmDeleteButton').addEventListener('click', function() {
+          const code = this.getAttribute('data-code');
+          const deleteModal = document.getElementById('deleteModal');
+          
+          const formData = new FormData();
+          formData.append('codeElement', code);
+          
+          fetch('{% url "delete_ressource" %}', {
+              method: 'POST',
+              headers: {
+                  'X-CSRFToken': csrfToken
+              },
+              body: formData
+          })
+          .then(response => response.json())
+          .then(data => {
+              if (data.success) {
+                  showToast(data.message, 'success');
+                  refreshElementList();
+                  
+                  // Fermer de force le modal
+                  forceCloseModal(deleteModal);
+              } else {
+                  showToast(data.message, 'danger');
+              }
+          })
+          .catch(error => {
+              console.error('Erreur:', error);
+              showToast('Une erreur est survenue', 'danger');
+          });
+      });
+  });
+</script><!-- Toast Notifications -->
 <div class="toast-container position-fixed top-0 end-0 p-3">
     <div id="toastMessage" class="toast align-items-center text-white bg-success border-0" role="alert">
         <div class="d-flex">
@@ -135,375 +801,14 @@
   <!-- Custom js for this page-->
   <script src="{% static 'js/dashboard.js' %}"></script>
   <script src="{% static 'js/Chart.roundedBarCharts.js' %}"></script>
-  <script>
-    $(document).ready(function() {
-        // Initialise DataTables
-        $('#example').DataTable();
-    
-        let editMode = false;
-    
-        function showToast(message, success=true) {
-            let toastEl = $("#toastMessage");
-            toastEl.removeClass("bg-success bg-danger").addClass(success ? "bg-success" : "bg-danger");
-            toastEl.find(".toast-body").text(message);
-            let toast = new bootstrap.Toast(toastEl[0]);
-            toast.show();
-        }
-    
-        $("#ressource-form").submit(function(e) {
-            e.preventDefault();
-            let id = $("#codeRessource").val();
-            let url = id ? `/ressource/update/${id}/` : "{% url 'ressource_create' %}";
-            let method = "POST";
-    
-            $.ajax({
-                type: method,
-                url: url,
-                data: {
-                    codeRessource: $("#codeRessource").val(),
-                    description: $("#description").val(),
-                    csrfmiddlewaretoken: "{{ csrf_token }}"
-                },
-                success: function(response) {
-                    if (response.success) {
-                        if (id) {
-                            // Mise à jour d'un ressource existant
-                            $(`tr[data-id="${id}"]`).html(`
-                                <td>${response.codeRessource}</td>
-                                <td>${response.description}</td>
-                                <td>
-                                    <button class="btn btn-warning btn-sm edit" data-id="${response.id}" data-bs-toggle="modal" data-bs-target="#ressourceModal">
-                                        <i class="fas fa-edit"></i> Modifier
-                                    </button>
-                                    <button class="btn btn-danger btn-sm delete" data-id="${response.id}">
-                                        <i class="fas fa-trash"></i> Supprimer
-                                    </button>
-                                </td>
-                            `);
-                        } else {
-                            // Ajout d'un nouvel élément
-                            $("#ressource-list").append(`
-                                <tr data-id="${response.id}">
-                                    <td>${response.codeRessource}</td>
-                                    <td>${response.description}</td>
-                                    <td>
-                                        <button class="btn btn-warning btn-sm edit" data-id="${response.id}" data-bs-toggle="modal" data-bs-target="#ressourceModal">
-                                            <i class="fas fa-edit"></i> Modifier
-                                        </button>
-                                        <button class="btn btn-danger btn-sm delete" data-id="${response.id}">
-                                            <i class="fas fa-trash"></i> Supprimer
-                                        </button>
-                                    </td>
-                                </tr>
-                            `);
-                        }
-                        showToast("Élément enregistré avec succès !");
-                        $("#ressource-form")[0].reset();
-                        $("#codeRessource").val("");
-                        $("#ressourceModal").modal("hide");
-                        $('#example').DataTable().clear().destroy(); // Réinitialise DataTable pour prendre en compte le nouveau contenu
-                        $('#example').DataTable(); // Redémarre DataTable
-                    } else {
-                        showToast("Erreur : " + JSON.stringify(response.errors), false);
-                    }
-                }
-            });
-        });
-    
-        $(document).on("click", ".edit", function() {
-            let id = $(this).data("codeRessource");
-            let row = $(`tr[data-id="${id}"]`);
-            $("#ressource-id").val(id);
-            $("#codeRessource").val(row.find("td").eq(0).text());
-            $("#nom").val(row.find("td").eq(1).text());
-        });
-    
-        $(document).on("click", ".delete", function() {
-            let id = $(this).data("id");
-            $.ajax({
-                type: "POST",
-                url: `/ressource/delete/${id}/`,
-                data: { csrfmiddlewaretoken: "{{ csrf_token }}" },
-                success: function(response) {
-                    if (response.success) {
-                        $(`tr[data-id="${id}"]`).remove();
-                        showToast("Ressource supprimée avec succès !");
-                        $('#example').DataTable().clear().destroy(); // Réinitialise DataTable pour mettre à jour la table
-                        $('#example').DataTable(); // Redémarre DataTable
-                    } else {
-                        showToast("Erreur lors de la suppression", false);
-                    }
-                }
-            });
-        });
-    });
-    </script>
-    <script>
-        $(document).ready(function() {
-            // Initialise DataTables
-            $('#example').DataTable();
-        
-            let editMode = false;
-        
-            function showToast(message, success=true) {
-                let toastEl = $("#toastMessage");
-                toastEl.removeClass("bg-success bg-danger").addClass(success ? "bg-success" : "bg-danger");
-                toastEl.find(".toast-body").text(message);
-                let toast = new bootstrap.Toast(toastEl[0]);
-                toast.show();
-            }
-        
-            $("#ressource-form").submit(function(e) {
-                e.preventDefault();
-                let id = $("#ressource-id").val();
-                let url = id ? `/ressource/update/${id}/` : "{% url 'ressource_create' %}";
-                let method = "POST";
-        
-                $.ajax({
-                    type: method,
-                    url: url,
-                    data: {
-                        codeRessource: $("#codeRessource").val(),
-                        nom: $("#nom").val(),
-                        csrfmiddlewaretoken: "{{ csrf_token }}"
-                    },
-                    success: function(response) {
-                        if (response.success) {
-                            if (id) {
-                                // Mise à jour d'un élément existant
-                                $(`tr[data-id="${id}"]`).html(`
-                                    <td>${response.codeRessource}</td>
-                                    <td>${response.nom}</td>
-                                    <td>
-                                        <button class="btn btn-warning btn-sm edit" data-id="${response.id}" data-bs-toggle="modal" data-bs-target="#ressourceModal">
-                                            <i class="fas fa-edit"></i> Modifier
-                                        </button>
-                                        <button class="btn btn-danger btn-sm delete" data-id="${response.id}">
-                                            <i class="fas fa-trash"></i> Supprimer
-                                        </button>
-                                    </td>
-                                `);
-                            } else {
-                                // Ajout d'un nouvel élément
-                                $("#ressource-list").append(`
-                                    <tr data-id="${response.id}">
-                                        <td>${response.codeRessource}</td>
-                                        <td>${response.nom}</td>
-                                        <td>
-                                            <button class="btn btn-warning btn-sm edit" data-id="${response.id}" data-bs-toggle="modal" data-bs-target="#ressourceModal">
-                                                <i class="fas fa-edit"></i> Modifier
-                                            </button>
-                                            <button class="btn btn-danger btn-sm delete" data-id="${response.id}">
-                                                <i class="fas fa-trash"></i> Supprimer
-                                            </button>
-                                        </td>
-                                    </tr>
-                                `);
-                            }
-                            showToast("Élément enregistré avec succès !");
-                            $("#ressource-form")[0].reset();
-                            $("#ressource-id").val("");
-                            $("#ressourceModal").modal("hide");
-                            $('#example').DataTable().clear().destroy(); // Réinitialise DataTable pour prendre en compte le nouveau contenu
-                            $('#example').DataTable(); // Redémarre DataTable
-                        } else {
-                            showToast("Erreur : " + JSON.stringify(response.errors), false);
-                        }
-                    }
-                });
-            });
-        
-            $(document).on("click", ".edit", function() {
-                let id = $(this).data("id");
-                let row = $(`tr[data-id="${id}"]`);
-                $("#ressource-id").val(id);
-                $("#codeRessource").val(row.find("td").eq(0).text());
-                $("#nom").val(row.find("td").eq(1).text());
-            });
-        
-            $(document).on("click", ".delete", function() {
-                let id = $(this).data("id");
-                $.ajax({
-                    type: "POST",
-                    url: `/ressource/delete/${id}/`,
-                    data: { csrfmiddlewaretoken: "{{ csrf_token }}" },
-                    success: function(response) {
-                        if (response.success) {
-                            $(`tr[data-id="${id}"]`).remove();
-                            showToast("Élément supprimé avec succès !");
-                            $('#example').DataTable().clear().destroy(); // Réinitialise DataTable pour mettre à jour la table
-                            $('#example').DataTable(); // Redémarre DataTable
-                        } else {
-                            showToast("Erreur lors de la suppression", false);
-                        }
-                    }
-                });
-            });
-        });
-        </script>
-    
-        <!-- Modal 1: Sélection du fichier CSV -->
-        <div class="modal fade" id="csvModal" tabindex="-1">
-            <div class="modal-dialog">
-                <div class="modal-content">
-                    <div class="modal-header">
-                        <h5 class="modal-title">Importer un fichier CSV</h5>
-                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                    </div>
-                    <div class="modal-body">
-                        <input type="file" id="fileInput" accept=".csv" class="form-control">
-                    </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
-                        <button id="processFile" class="btn btn-success">Suivant</button>
-                    </div>
-                </div>
-            </div>
-        </div>
-    
-        <!-- Modal 2: Sélection des colonnes -->
-        <div class="modal fade" id="columnsModal" tabindex="-1">
-            <div class="modal-dialog">
-                <div class="modal-content">
-                    <div class="modal-header">
-                        <h5 class="modal-title">Sélectionner les colonnes à importer</h5>
-                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                    </div>
-                    <div class="modal-body">
-                        <form id="columnsForm"></form>
-                    </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
-                        <button id="importData" class="btn btn-success">Importer</button>
-                    </div>
-                </div>
-            </div>
-        </div>
-    
-        <!-- Toast -->
-        <div id="toastContainer" class="toast align-items-center text-white bg-success" role="alert">
-            <div class="d-flex">
-                <div class="toast-body" id="toastMessage"></div>
-                <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
-            </div>
-        </div>
-    
-        <script>
-            $(document).ready(function() {
-                let fileName = "";
-                let csvHeaders = [];
-    
-                // Ouvrir la première modal
-                $("#openModal").click(function() {
-                    $("#csvModal").modal("show");
-                });
-    
-                // Lire le fichier CSV et extraire les en-têtes
-                $("#processFile").click(function() {
-                    let file = $("#fileInput")[0].files[0];
-                    if (!file) {
-                        showToast("Aucun fichier sélectionné !", "danger");
-                        return;
-                    }
-    
-                    fileName = file.name;
-    
-                    // Lecture du fichier CSV
-                    let reader = new FileReader();
-                    reader.onload = function(event) {
-                        let text = event.target.result;
-                        let lines = text.split("\n");
-                        
-                        if (lines.length > 0) {
-                            csvHeaders = lines[0].split(",").map(h => h.trim());
-                            showColumnsModal(csvHeaders);
-                        } else {
-                            showToast("Fichier CSV vide ou incorrect !", "danger");
-                        }
-                    };
-                    reader.readAsText(file);
-    
-                    $("#csvModal").modal("hide");
-                });
-    
-                // Affichage de la deuxième modal avec les colonnes à sélectionner
-                function showColumnsModal(headers) {
-                    let form = $("#columnsForm");
-                    form.empty();
-    
-                    headers.forEach((header, index) => {
-                        let checkbox = `
-                            <div class="form-check">
-                                <input class="form-check-input" type="checkbox" value="${header}" id="col${index}" checked>
-                                <label class="form-check-label" for="col${index}">${header}</label>
-                            </div>
-                        `;
-                        form.append(checkbox);
-                    });
-    
-                    $("#columnsModal").modal("show");
-                }
-    
-                // Validation de l'importation
-                $("#importData").click(function() {
-                    let selectedColumns = [];
-                    $("#columnsForm input:checked").each(function() {
-                        selectedColumns.push($(this).val());
-                    });
-    
-                    if (selectedColumns.length === 0) {
-                        showToast("Veuillez sélectionner au moins une colonne !", "danger");
-                        return;
-                    }
-    
-                    showToast("Importation réussie des colonnes : " + selectedColumns.join(", "), "success");
-    
-                    // Fermer la modal
-                    $("#columnsModal").modal("hide");
-                });
-    
-                // Fonction pour afficher un toast
-                function showToast(message, type) {
-                    $("#toastMessage").text(message);
-                    $("#toastContainer").removeClass("bg-success bg-danger").addClass("bg-" + type);
-                    let toast = new bootstrap.Toast(document.getElementById("toastContainer"));
-                    toast.show();
-                }
-            });
-            $("#importData").click(function() {
-                let selectedColumns = [];
-                $("#columnsForm input:checked").each(function() {
-                    selectedColumns.push($(this).val());
-                });
-            
-                if (selectedColumns.length === 0) {
-                    showToast("Veuillez sélectionner au moins une colonne !", "danger");
-                    return;
-                }
-            
-                let file = $("#fileInput")[0].files[0];
-                let formData = new FormData();
-                formData.append("csv_file", file);
-                formData.append("columns", JSON.stringify(selectedColumns));
-            
-                $.ajax({
-                    url: "/ressource/import-csv/",  // URL de la vue Django
-                    type: "POST",
-                    data: formData,
-                    processData: false,
-                    contentType: false,
-                    success: function(response) {
-                        showToast("Importation réussie !", "success");
-                        $("#columnsModal").modal("hide");
-                    },
-                    error: function(xhr) {
-                        showToast("Erreur d'importation !", "danger");
-                    }
-                });
-            });
-            
-        </script>
-    
+  <div id="toastMessage" class="toast position-fixed bottom-0 end-0 m-3" style="z-index: 1050;" data-bs-autohide="true">
+    <div class="toast-body"></div>
+</div>
+
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+
+  
 
   <!-- End custom js for this page-->
 </body>

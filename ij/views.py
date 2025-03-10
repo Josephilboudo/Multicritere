@@ -481,8 +481,6 @@ def get_tables(request):
     
     
 #test
-from .models import Element
-
 def get_table_columns(request):
     print("Vue get_table_columns appelée")  # Log de débogage
     if request.method == "POST":
@@ -653,3 +651,212 @@ def connect_to_external_db(request):
         except Exception as e:
             return JsonResponse({"status": "error", "message": str(e)}, status=500)
     return JsonResponse({"status": "error", "message": "Méthode non autorisée"}, status=405)
+
+#ressource
+def get_table_columns(request):
+    print("Vue get_table_columns appelée")  # Log de débogage
+    if request.method == "POST":
+        try:
+            # Récupérer le nom de la table depuis le corps de la requête
+            data = json.loads(request.body)
+            table_name = data.get("tableName")
+            print(f"Nom de la table reçu : {table_name}")  # Log de débogage
+
+            if not table_name:
+                return JsonResponse({
+                    "status": "error", 
+                    "message": "Le nom de la table est requis"
+                }, status=400)
+
+            # Récupérer les identifiants de la session
+            credentials = request.session.get('db_credentials')
+            if not credentials:
+                return JsonResponse({
+                    "status": "error", 
+                    "message": "Aucune connexion établie. Veuillez vous connecter d'abord."
+                }, status=401)
+
+            db_name = credentials.get('db_name')
+            name = credentials.get('name')
+            password = credentials.get('password')
+
+            # Établir la connexion
+            connection = get_dynamic_connection(db_name, name, password)
+
+            with connection.cursor() as cursor:
+                # Récupérer les colonnes de la table (en utilisant des backticks pour échapper le nom de la table)
+                cursor.execute(f"DESCRIBE `{table_name}`;")
+                columns = [row[0] for row in cursor.fetchall()]
+                print(f"Colonnes récupérées : {columns}")  # Log de débogage
+
+                return JsonResponse({
+                    "status": "success",
+                    "columns": columns,
+                })
+
+        except Exception as e:
+            print(f"Erreur dans get_table_columns : {e}")  # Log de débogage
+            return JsonResponse({
+                "status": "error",
+                "message": str(e)
+            }, status=500)
+
+    return JsonResponse({
+        "status": "error",
+        "message": "Méthode non autorisée"
+    }, status=405)
+
+def import_dataRessource(request):
+    print("Vue import_data appelée")  # Log de débogage
+    if request.method == 'POST':
+        try:
+            # Récupérer les données depuis le corps de la requête
+            data = json.loads(request.body)
+            table_name = data.get('tableName')
+            code_column = data.get('codeColumn')
+            description_column = data.get('descriptionColumn')
+
+            print(f"Données reçues : table_name={table_name}, code_column={code_column}, description_column={description_column}")  # Log de débogage
+
+            if not table_name or not code_column or not description_column:
+                return JsonResponse({
+                    "status": "error", 
+                    "message": "Tous les champs sont requis (tableName, codeColumn, descriptionColumn)"
+                }, status=400)
+
+            # Connexion à la base de données externe
+            with connections['external_db'].cursor() as cursor:
+                # Récupérer les données de la table
+                cursor.execute(f"SELECT `{code_column}`, `{description_column}` FROM `{table_name}`")
+                rows = cursor.fetchall()
+                print(f"Lignes récupérées : {rows}")  # Log de débogage
+
+                # Insérer les données dans la base de données locale
+                for row in rows:
+                    Ressource.objects.create(
+                        codeRessource=row[0],
+                        description=row[1]
+                    )
+
+            return JsonResponse({"status": "success", "message": "Données importées avec succès"})
+        except Exception as e:
+            print(f"Erreur dans import_data : {e}")  # Log de débogage
+            return JsonResponse({"status": "error", "message": str(e)}, status=500)
+    return JsonResponse({"status": "error", "message": "Méthode non autorisée"}, status=405)
+
+def get_columns(request):
+    print("Vue get_columns appelée")  # Log de débogage
+    if request.method == 'POST':
+        try:
+            # Récupérer le nom de la table depuis le corps de la requête
+            data = json.loads(request.body)
+            table_name = data.get('tableName')
+            print(f"Nom de la table reçu : {table_name}")  # Log de débogage
+
+            if not table_name:
+                return JsonResponse({"status": "error", "message": "Le nom de la table est requis"}, status=400)
+
+            # Connexion à la base de données externe
+            with connections['external_db'].cursor() as cursor:
+                # Récupérer les colonnes de la table (en utilisant des backticks pour échapper le nom de la table)
+                cursor.execute(f"DESCRIBE `{table_name}`")
+                columns = [row[0] for row in cursor.fetchall()]
+                print(f"Colonnes récupérées : {columns}")  # Log de débogage
+
+            return JsonResponse({"status": "success", "columns": columns})
+        except Exception as e:
+            print(f"Erreur dans get_columns : {e}")  # Log de débogage
+            return JsonResponse({"status": "error", "message": str(e)}, status=500)
+    return JsonResponse({"status": "error", "message": "Méthode non autorisée"}, status=405)
+
+def get_tables(request):
+    if request.method == 'GET':  # Autorisez les requêtes GET
+        try:
+            with connections['external_db'].cursor() as cursor:
+                cursor.execute("SHOW TABLES")
+                tables = [row[0] for row in cursor.fetchall()]
+
+            return JsonResponse({"status": "success", "tables": tables})
+        except Exception as e:
+            return JsonResponse({"status": "error", "message": str(e)}, status=500)
+    return JsonResponse({"status": "error", "message": "Méthode non autorisée"}, status=405)
+
+def save_ressource(request):
+    if request.method == 'POST':
+        code = request.POST.get('codeRessource')
+        desc = request.POST.get('description')
+        action = request.POST.get('action')
+        
+        try:
+            if action == 'add':
+                # Création d'un nouvel élément
+                ressource = Ressource(codeRessource=code, description=desc)
+                ressource.save()
+                return JsonResponse({
+                    'success': True,
+                    'message': "Élément ajouté avec succès!"
+                })
+            elif action == 'edit':
+                # Modification d'un élément existant
+                ressource = get_object_or_404(Ressource, codeRessource=code)
+                ressource.description = desc
+                ressource.save()
+                return JsonResponse({
+                    'success': True,
+                    'message': "Élément modifié avec succès!"
+                })
+        except Exception as e:
+            return JsonResponse({
+                'success': False,
+                'message': f"Erreur: {str(e)}"
+            })
+    
+    return JsonResponse({
+        'success': False,
+        'message': "Méthode non autorisée"
+    })
+
+def delete_ressource(request):
+    if request.method == 'POST':
+        code = request.POST.get('codeElement')
+        try:
+            ressource = get_object_or_404(Ressource, codeRessource=code)
+            ressource.delete()
+            return JsonResponse({
+                'success': True,
+                'message': "Élément supprimé avec succès!"
+            })
+        except Exception as e:
+            return JsonResponse({
+                'success': False,
+                'message': f"Erreur: {str(e)}"
+            })
+    
+    return JsonResponse({
+        'success': False,
+        'message': "Méthode non autorisée"
+    })
+
+def get_ressource_json(request):
+    try:
+        ressources = Ressource.objects.all().order_by('codeRessource')
+        ressources_list = []
+        
+        for ressource in ressources:
+            ressources_list.append({
+                'codeRessource': ressource.codeRessource,
+                'description': ressource.description
+            })
+            
+        print("Données envoyées par Django :", ressources_list)
+        
+        return JsonResponse({
+            'success': True,
+            'ressources': ressources_list
+        })
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'message': str(e)
+        })
+        
