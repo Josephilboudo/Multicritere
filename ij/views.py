@@ -671,15 +671,16 @@ def get_couplage_json(request):
         
         for couplage in couplages:
             couplage_list.append({
-                'element': couplage.element,
-                'ressource': couplage.ressource
+                'id': couplage.id,
+                'element': couplage.element.codeElement,
+                'ressource': couplage.ressource.codeRessource
             })
             
         print("Données envoyées par Django :", couplage_list)
         
         return JsonResponse({
             'success': True,
-            'couplage': couplage_list
+            'couplages': couplage_list
         })
     except Exception as e:
         return JsonResponse({

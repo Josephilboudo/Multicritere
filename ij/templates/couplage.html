@@ -123,9 +123,9 @@
                   <td>{{ couplage.element }}</td>
                   <td>{{ couplage.ressource }}</td>
                   <td>
-                      <button class="btn btn-info btn-sm" onclick="editElement('{{ couplage.id }}','{{ couplage.element }}', '{{ couplage.ressource }}')">
+                      {% comment %} <button class="btn btn-info btn-sm" onclick="editElement('{{ couplage.id }}','{{ couplage.element }}', '{{ couplage.ressource }}')">
                           <i class="fas fa-edit"></i>
-                      </button>
+                      </button> {% endcomment %}
                       <button class="btn btn-danger btn-sm" onclick="deleteElement('{{ couplage.id }}')">
                           <i class="fas fa-trash"></i>
                       </button>
@@ -506,6 +506,8 @@
             // Fermer le modal de mapping
             const mappingFieldsModal = bootstrap.Modal.getInstance(document.getElementById('mappingFieldsModal'));
             mappingFieldsModal.hide();
+            // Rafraîchir la liste des couplages
+            refreshElementList(); // Ajoutez cette ligne
     
             // Nettoyer manuellement le backdrop
             // Fermer de force le modal et enlever le voile noir
@@ -553,6 +555,7 @@
   function editElement(couplageId, code, description) {
       document.getElementById('formAction').value = 'edit';
       document.getElementById('couplageId').value = couplageId;
+      console.log("ID du couplage à modifier :", couplageId); 
       document.getElementById('element').value = code;
       document.getElementById('ressource').readOnly = false;
       document.getElementById('ressource').value = description;
@@ -616,7 +619,7 @@
   }
   
   // Construire le HTML du tableau à partir des données JSON
-  function buildTableHTML(ressources) {
+  function buildTableHTML(couplages) {
       let html = `
           <table class="table table-striped">
               <thead>
@@ -640,9 +643,9 @@
                       <td>${couplage.element}</td>
                       <td>${couplage.ressource}</td>
                       <td>
-                          <button class="btn btn-info btn-sm" onclick="editElement('${couplage.element}', '${couplage.ressource}')">
+                          {% comment %} <button class="btn btn-info btn-sm" onclick="editElement('${couplage.element}', '${couplage.ressource}')">
                               <i class="fas fa-edit"></i>
-                          </button>
+                          </button> {% endcomment %}
                           <button class="btn btn-danger btn-sm" onclick="deleteElement('${couplage.id}')">
                               <i class="fas fa-trash"></i>
                           </button>
@@ -660,18 +663,22 @@
   
   // Recharger la liste des éléments
   function refreshElementList() {
-      fetch('{% url "get_ressource_json" %}')
+      fetch('{% url "get_couplage_json" %}')
           .then(response => response.json())
           .then(data => {
             console.log("Données reçues :", data);
               if (data.success) {
-                  const tableHTML = buildTableHTML(data.ressources);
+                console.log("✅ Tableau couplages :", data.couplages);
+
+                  const tableHTML = buildTableHTML(data.couplages);
                   document.getElementById('element-list-container').innerHTML = tableHTML;
               } else {
+                console.error("❌ Erreur : 'couplages' est undefined ou n'est pas un tableau", data);
                   showToast('Erreur lors du chargement des données', 'danger');
               }
           })
           .catch(error => {
+            console.error('❌ Erreur lors du rechargement de la liste:', error);
               console.error('Erreur lors du rechargement de la liste:', error);
               showToast('Erreur lors du rechargement de la liste', 'danger');
           });
