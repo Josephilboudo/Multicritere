@@ -11,7 +11,7 @@ from django.views.decorators.csrf import csrf_exempt
 from django.core.files.storage import default_storage
 import pandas as pd
 from .form import FichierCSVForm
-from .models import Element, Ressource, Critere, Contrainte, Solution
+from .models import Element, Ressource, Critere, Contrainte, Solution, Couplage
 from .utils import get_dynamic_connection
 
 def home(request):
@@ -41,6 +41,10 @@ def element(request):
 def critere(request):
     criteres = Critere.objects.all()
     return render(request, 'critere.html', {'criteres':criteres})
+
+def couplage(request):
+    couplages = Couplage.objects.all()
+    return render(request, 'couplage.html', {'couplages':couplages})
 
 """ Elements """
 def element_list(request):
@@ -427,59 +431,6 @@ def connect_to_external_db(request):
     return JsonResponse({"status": "error", "message": "Méthode non autorisée"}, status=405)
 
 #ressource
-def get_table_columns(request):
-    print("Vue get_table_columns appelée")  # Log de débogage
-    if request.method == "POST":
-        try:
-            # Récupérer le nom de la table depuis le corps de la requête
-            data = json.loads(request.body)
-            table_name = data.get("tableName")
-            print(f"Nom de la table reçu : {table_name}")  # Log de débogage
-
-            if not table_name:
-                return JsonResponse({
-                    "status": "error", 
-                    "message": "Le nom de la table est requis"
-                }, status=400)
-
-            # Récupérer les identifiants de la session
-            credentials = request.session.get('db_credentials')
-            if not credentials:
-                return JsonResponse({
-                    "status": "error", 
-                    "message": "Aucune connexion établie. Veuillez vous connecter d'abord."
-                }, status=401)
-
-            db_name = credentials.get('db_name')
-            name = credentials.get('name')
-            password = credentials.get('password')
-
-            # Établir la connexion
-            connection = get_dynamic_connection(db_name, name, password)
-
-            with connection.cursor() as cursor:
-                # Récupérer les colonnes de la table (en utilisant des backticks pour échapper le nom de la table)
-                cursor.execute(f"DESCRIBE `{table_name}`;")
-                columns = [row[0] for row in cursor.fetchall()]
-                print(f"Colonnes récupérées : {columns}")  # Log de débogage
-
-                return JsonResponse({
-                    "status": "success",
-                    "columns": columns,
-                })
-
-        except Exception as e:
-            print(f"Erreur dans get_table_columns : {e}")  # Log de débogage
-            return JsonResponse({
-                "status": "error",
-                "message": str(e)
-            }, status=500)
-
-    return JsonResponse({
-        "status": "error",
-        "message": "Méthode non autorisée"
-    }, status=405)
-
 def import_dataRessource(request):
     print("Vue import_data appelée")  # Log de débogage
     if request.method == 'POST':
@@ -590,6 +541,137 @@ def get_ressource_json(request):
         return JsonResponse({
             'success': True,
             'ressources': ressources_list
+        })
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'message': str(e)
+        })
+        
+#couplage
+def import_dataCouplage(request):
+    print("Vue import_dataCouplage appelée")  # Log de débogage
+    if request.method == 'POST':
+        try:
+            # Récupérer les données depuis le corps de la requête
+            data = json.loads(request.body)
+            table_name = data.get('tableName')
+            code_column = data.get('codeColumn')
+            description_column = data.get('descriptionColumn')
+
+            print(f"Données reçues : table_name={table_name}, code_column={code_column}, description_column={description_column}")  # Log de débogage
+
+            if not table_name or not code_column or not description_column:
+                return JsonResponse({
+                    "status": "error", 
+                    "message": "Tous les champs sont requis (tableName, codeColumn, descriptionColumn)"
+                }, status=400)
+
+            # Connexion à la base de données externe
+            with connections['external_db'].cursor() as cursor:
+                # Récupérer les données de la table
+                cursor.execute(f"SELECT `{code_column}`, `{description_column}` FROM `{table_name}`")
+                rows = cursor.fetchall()
+                print(f"Lignes récupérées : {rows}")  # Log de débogage
+
+                # Insérer les données dans la base de données locale
+                for row in rows:
+                    element_id = row[0]
+                    ressource_id = row[1]
+                    element = Element.objects.get(codeElement=element_id)
+                    ressource = Ressource.objects.get(codeRessource=ressource_id)
+                    Couplage.objects.create(
+                        element=element,
+                        ressource=ressource
+                    )
+
+            return JsonResponse({"status": "success", "message": "Données importées avec succès"})
+        except Exception as e:
+            print(f"Erreur dans import_dataCouplage : {e}")  # Log de débogage
+            return JsonResponse({"status": "error", "message": str(e)}, status=500)
+    return JsonResponse({"status": "error", "message": "Méthode non autorisée"}, status=405)
+
+def save_couplage(request):
+    if request.method == 'POST':
+        code = request.POST.get('element')
+        desc = request.POST.get('ressource')
+        action = request.POST.get('action')
+        
+        try:
+            if action == 'add':
+                # Création d'un nouvel élément
+                element = Element.objects.get(codeElement= code)
+                ressource = Ressource.objects.get(codeRessource= desc)
+                couplage = Couplage(element=element, ressource=ressource)
+                couplage.save()
+                return JsonResponse({
+                    'success': True,
+                    'message': "Couplage ajouté avec succès!"
+                })
+            elif action == 'edit':
+                # Modification d'un élément existant
+                couplage_id = request.POST.get('couplageId')
+                element_code = request.POST.get('element')
+                ressource_code = request.POST.get('ressource')
+                couplage = get_object_or_404(Couplage, id=couplage_id)
+                # Mettez à jour les relations avec les nouveaux objets
+                element = Element.objects.get(codeElement=element_code)
+                ressource = Ressource.objects.get(codeRessource=ressource_code)
+                couplage.ressource = ressource
+                couplage.element = element
+                couplage.save()
+                return JsonResponse({
+                    'success': True,
+                    'message': "Couplage modifié avec succès!"
+                })
+        except Exception as e:
+            return JsonResponse({
+                'success': False,
+                'message': f"Erreur: {str(e)}"
+            })
+    
+    return JsonResponse({
+        'success': False,
+        'message': "Méthode non autorisée"
+    })
+
+def delete_couplage(request):
+    if request.method == 'POST':
+        code = request.POST.get('element')
+        try:
+            couplage = get_object_or_404(Couplage, id=code)
+            couplage.delete()
+            return JsonResponse({
+                'success': True,
+                'message': "Couplage supprimé avec succès!"
+            })
+        except Exception as e:
+            return JsonResponse({
+                'success': False,
+                'message': f"Erreur: {str(e)}"
+            })
+    
+    return JsonResponse({
+        'success': False,
+        'message': "Méthode non autorisée"
+    })
+
+def get_couplage_json(request):
+    try:
+        couplages = Couplage.objects.all().order_by('element')
+        couplage_list = []
+        
+        for couplage in couplages:
+            couplage_list.append({
+                'element': couplage.element,
+                'ressource': couplage.ressource
+            })
+            
+        print("Données envoyées par Django :", couplage_list)
+        
+        return JsonResponse({
+            'success': True,
+            'couplage': couplage_list
         })
     except Exception as e:
         return JsonResponse({

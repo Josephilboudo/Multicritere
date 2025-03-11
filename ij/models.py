@@ -19,8 +19,13 @@ class Ressource(models.Model):
 class Couplage(models.Model):
     element = models.ForeignKey(Element, on_delete=models.CASCADE)
     ressource = models.ForeignKey(Ressource, on_delete=models.CASCADE)
-    def __str__(self):
-        return f"{self.element.description} couple a {self.ressource.description}"
+   # Clé primaire personnalisée
+    id = models.CharField(max_length=255, primary_key=True, editable=False)
+
+    def save(self, *args, **kwargs):
+        # Générer la clé primaire en concaténant les IDs
+        self.id = f"{self.element_id}_{self.ressource_id}"
+        super().save(*args, **kwargs)
     
 class Critere(models.Model):
     idCritere = models.AutoField(primary_key=True)
