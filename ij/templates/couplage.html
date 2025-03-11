@@ -156,13 +156,23 @@
                   <input type="hidden" id="couplageId" name="couplageId" value="">
                   
                   <div class="mb-3">
-                      <label for="codeElement" class="form-label">Code de l'elemenmt</label>
-                      <input type="text" class="form-control" id="element" name="ressource" required>
+                    <label for="element" class="form-label">Élément</label>
+                    <select class="form-control" id="element" name="element" required>
+                      <option value="">-- Sélectionnez un élément --</option>
+                      {% for element in elements %}
+                        <option value="{{ element.codeElement }}">{{ element.codeElement }} - {{ element.description }}</option>
+                      {% endfor %}
+                    </select>
                   </div>
                   
                   <div class="mb-3">
-                      <label for="description" class="form-label">Code de la ressource</label>
-                      <input type="text" class="form-control" id="ressource" name="ressource" required>
+                    <label for="ressource" class="form-label">Ressource</label>
+                    <select class="form-control" id="ressource" name="ressource" required>
+                      <option value="">-- Sélectionnez une ressource --</option>
+                      {% for ressource in ressources %}
+                        <option value="{{ ressource.codeRessource }}">{{ ressource.codeRessource }} - {{ ressource.description }}</option>
+                      {% endfor %}
+                    </select>
                   </div>
               </div>
               <div class="modal-footer">

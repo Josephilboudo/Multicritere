@@ -44,7 +44,15 @@ def critere(request):
 
 def couplage(request):
     couplages = Couplage.objects.all()
-    return render(request, 'couplage.html', {'couplages':couplages})
+    elements = Element.objects.all()
+    ressources = Ressource.objects.all()
+     # Fusionner tous les dictionnaires en un seul
+    context = {
+        'couplages': couplages,
+        'elements': elements,
+        'ressources': ressources,
+    }
+    return render(request, 'couplage.html', context)
 
 """ Elements """
 def element_list(request):
