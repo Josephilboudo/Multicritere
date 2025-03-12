@@ -1,6 +1,19 @@
 {%load static%}<!DOCTYPE html>
 <html lang="en">
+<!-- Bootstrap CSS -->
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
 
+<!-- jQuery -->
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+
+<!-- Bootstrap JS -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+<!-- DataTables CSS -->
+<link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/1.10.25/css/jquery.dataTables.css">
+
+<!-- DataTables JS -->
+<script type="text/javascript" src="https://cdn.datatables.net/1.10.25/js/jquery.dataTables.min.js"></script>
 {%include 'head.html'%}
 <body>
   <div class="container-scroller">
@@ -469,203 +482,107 @@
 <script>
   document.addEventListener('DOMContentLoaded', function () {
     const connectButton = document.getElementById('connectDatabaseButton');
-    const selectTableButton = document.getElementById('selectTableButton');
-    const importDataButton = document.getElementById('importDataButton');
-    const tableSelect = document.getElementById('tableSelect');
-    const codeElementColumn = document.getElementById('codeElementColumn');
-    const descriptionColumn = document.getElementById('descriptionColumn');
 
-    let selectedTable = null;
+    // Replace your existing forceCloseModal function with this one
+function forceCloseModal(modalId) {
+  // Close the modal using Bootstrap API
+  const modalElement = document.getElementById(modalId);
+  const modalInstance = bootstrap.Modal.getInstance(modalElement);
+  
+  if (modalInstance) {
+      modalInstance.hide();
+  }
+  
+  // Give a small delay to allow Bootstrap to start its hiding process
+  setTimeout(() => {
+      // Force remove the backdrop
+      const backdrops = document.querySelectorAll('.modal-backdrop');
+      backdrops.forEach(backdrop => backdrop.remove());
+      
+      // Reset body classes and styles
+      document.body.classList.remove('modal-open');
+      document.body.style.removeProperty('padding-right');
+      document.body.style.removeProperty('overflow');
+  }, 150);
+}
+    // Gestion du bouton de connexion
+    if (connectButton) {
+        connectButton.addEventListener('click', async function () {
+            const dbName = document.getElementById('dbName').value;
+            const dbUser = document.getElementById('dbUser').value;
+            const dbPassword = document.getElementById('dbPassword').value;
+            const dbHost = document.getElementById('dbHost').value;
+            const dbPort = document.getElementById('dbPort').value;
+
+            try {
+                // Établir la connexion
+                const connectionResponse = await fetch("{% url 'connect_to_external_db' %}", {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': getCookie('csrftoken')
+                    },
+                    body: JSON.stringify({
+                        dbName: dbName,
+                        dbUser: dbUser,
+                        dbPassword: dbPassword,
+                        dbHost: dbHost,
+                        dbPort: dbPort
+                    })
+                });
+
+                const connectionData = await connectionResponse.json();
+                if (connectionData.status === 'success') {
+                    showSuccessToast("Connexion réussie !");
+
+                    // Fermer le modal de connexion
+                    forceCloseModal('connectDatabaseModal');
+                } else {
+                    showErrorToast("Erreur : " + connectionData.message);
+                }
+            } catch (error) {
+                console.error('Erreur:', error);
+                showErrorToast("Une erreur est survenue lors de la connexion.");
+            }
+        });
+    }
 
     // Fonction pour afficher un toast de succès
     function showSuccessToast(message) {
-      const successToast = document.getElementById('successToast');
-      const toastBody = successToast.querySelector('.toast-body');
-      toastBody.textContent = message;
+        const successToast = document.getElementById('successToast');
+        const toastBody = successToast.querySelector('.toast-body');
+        toastBody.textContent = message;
 
-      const toast = new bootstrap.Toast(successToast);
-      toast.show();
+        const toast = new bootstrap.Toast(successToast);
+        toast.show();
     }
 
     // Fonction pour afficher un toast d'erreur
     function showErrorToast(message) {
-      const errorToast = document.getElementById('errorToast');
-      const toastBody = errorToast.querySelector('.toast-body');
-      toastBody.textContent = message;
+        const errorToast = document.getElementById('errorToast');
+        const toastBody = errorToast.querySelector('.toast-body');
+        toastBody.textContent = message;
 
-      const toast = new bootstrap.Toast(errorToast);
-      toast.show();
+        const toast = new bootstrap.Toast(errorToast);
+        toast.show();
     }
 
-    // Étape 1 : Connexion à la base de données
-    connectButton.addEventListener('click', async function () {
-      const dbName = document.getElementById('dbName').value;
-      const dbUser = document.getElementById('dbUser').value;
-      const dbPassword = document.getElementById('dbPassword').value;
-      const dbHost = document.getElementById('dbHost').value;
-      const dbPort = document.getElementById('dbPort').value;
-
-      try {
-        // Établir la connexion
-        const connectionResponse = await fetch("{% url 'connect_to_external_db' %}", {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'X-CSRFToken': getCookie('csrftoken')
-          },
-          body: JSON.stringify({
-            dbName: dbName,
-            dbUser: dbUser,
-            dbPassword: dbPassword,
-            dbHost: dbHost,
-            dbPort: dbPort
-          })
-        });
-
-        const connectionData = await connectionResponse.json();
-        if (connectionData.status === 'success') {
-          showSuccessToast("Connexion réussie !");
-
-          // Fermer le modal de connexion
-          const connectModal = bootstrap.Modal.getInstance(document.getElementById('connectDatabaseModal'));
-          connectModal.hide();
-              // Fermer de force le modal et enlever le voile noir
-        forceCloseModal(document.getElementById('connectDatabaseModal'));
-
-          const tablesData = await tablesResponse.json();
-          if (tablesData.status === 'success') {
-            tableSelect.innerHTML = '<option value="">-- Choisir une table --</option>';
-            tablesData.tables.forEach(table => {
-              const option = document.createElement('option');
-              option.value = table;
-              option.textContent = table;
-              tableSelect.appendChild(option);
-            });
-          } else {
-            showErrorToast("Erreur : " + tablesData.message);
-          }
-        } else {
-          showErrorToast("Erreur : " + connectionData.message);
+    // Fonction pour récupérer le token CSRF
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
         }
-      } catch (error) {
-        console.error('Erreur:', error);
-        showErrorToast("Une erreur est survenue lors de la connexion.");
-      }
-    });
-
-    // Étape 2 : Sélection de la table
-    selectTableButton.addEventListener('click', async function () {
-      selectedTable = tableSelect.value;
-
-      if (!selectedTable) {
-        showErrorToast("Veuillez sélectionner une table.");
-        return;
-      }
-
-      try {
-        // Récupérer les colonnes de la table sélectionnée
-        const columnsResponse = await fetch("{% url 'get_table_columns' %}", {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'X-CSRFToken': getCookie('csrftoken')
-          },
-          body: JSON.stringify({
-            tableName: selectedTable
-          })
-        });
-
-        const columnsData = await columnsResponse.json();
-        if (columnsData.status === 'success') {
-          // Remplir les options de mapping
-          codeElementColumn.innerHTML = '';
-          descriptionColumn.innerHTML = '';
-          columnsData.columns.forEach(column => {
-            const option = document.createElement('option');
-            option.value = column;
-            option.textContent = column;
-            codeElementColumn.appendChild(option.cloneNode(true));
-            descriptionColumn.appendChild(option.cloneNode(true));
-          });
-
-          // Fermer le modal de sélection de table
-          const selectTableModal = bootstrap.Modal.getInstance(document.getElementById('selectTableModal'));
-          selectTableModal.hide();
-
-          // Ouvrir le modal de mapping des champs
-          const mappingFieldsModal = new bootstrap.Modal(document.getElementById('mappingFieldsModal'));
-          mappingFieldsModal.show();
-        } else {
-          showErrorToast("Erreur : " + columnsData.message);
-        }
-      } catch (error) {
-        console.error('Erreur:', error);
-        showErrorToast("Une erreur est survenue lors de la récupération des colonnes.");
-      }
-    });
-
-    // Étape 3 : Importation des données
-    importDataButton.addEventListener('click', async function () {
-      const codeElementCol = codeElementColumn.value;
-      const descriptionCol = descriptionColumn.value;
-
-      if (!codeElementCol || !descriptionCol) {
-        showErrorToast("Veuillez mapper tous les champs.");
-        return;
-      }
-
-      try {
-        // Importer les données
-        const importResponse = await fetch("{% url 'import_data' %}", {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRFToken': getCookie('csrftoken')
-            },
-            body: JSON.stringify({
-                tableName: selectedTable,
-                codeColumn: codeElementCol,
-                descriptionColumn: descriptionCol
-            })
-        });
-    
-        const importData = await importResponse.json();
-        if (importData.status === 'success') {
-            showSuccessToast("Données importées avec succès !");
-    
-            // Fermer le modal de mapping
-            const mappingFieldsModal = bootstrap.Modal.getInstance(document.getElementById('mappingFieldsModal'));
-            mappingFieldsModal.hide();
-    
-            // Nettoyer manuellement le backdrop
-            // Fermer de force le modal et enlever le voile noir
-        forceCloseModal(document.getElementById('elementModal'));
-            
-        } else {
-            showErrorToast("Erreur : " + importData.message);
-        }
-    } catch (error) {
-        console.error('Erreur:', error);
-        showErrorToast("Une erreur est survenue lors de l'importation.");
+        return cookieValue;
     }
-    });
-  });
-
-  // Fonction pour récupérer le token CSRF
-  function getCookie(name) {
-    let cookieValue = null;
-    if (document.cookie && document.cookie !== '') {
-      const cookies = document.cookie.split(';');
-      for (let i = 0; i < cookies.length; i++) {
-        const cookie = cookies[i].trim();
-        if (cookie.substring(0, name.length + 1) === (name + '=')) {
-          cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
-          break;
-        }
-      }
-    }
-    return cookieValue;
-  }
+});
 </script>
 
 
