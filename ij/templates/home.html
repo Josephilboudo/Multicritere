@@ -189,15 +189,11 @@
                   <h3 class="font-weight-bold">Welcome Aamir</h3>
                   <h6 class="font-weight-normal mb-0">All systems are running smoothly! You have <span class="text-primary">3 unread alerts!</span></h6>
                 </div>
-                <div class="col-12 col-xl-4">
-                 <div class="justify-content-end d-flex">
-                  <div class="container mt-4">
-                    <button id="openModal" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#dbModal">
-                        <i class="fas fa-plus"></i> DB Connexion
-                    </button>
-                  </div>
-                 </div>
-                </div>
+                <!-- Bouton droite (vert) -->
+    <button type="button" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#connectDatabaseModal">
+      <i class="fas fa-database"></i>
+  </button>
+</div>
               </div>
             </div>
           </div>
@@ -353,57 +349,68 @@
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <!-- Modal Bootstrap -->
-<div class="modal fade" id="dbModal" tabindex="-1" aria-labelledby="dbModalLabel" aria-hidden="true">
+<!-- Modal pour la connexion à la base de données -->
+<div class="modal fade" id="connectDatabaseModal" tabindex="-1" aria-labelledby="connectDatabaseModalLabel" aria-hidden="true">
   <div class="modal-dialog">
-      <div class="modal-content">
-          <div class="modal-header">
-              <h5 class="modal-title">Importer une base de données</h5>
-              <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-          </div>
-          <div class="modal-body">
-              <form id="dbForm">
-                  {% csrf_token %}
-                  <div class="form-group">
-                      <label for="database_name">DB name</label>
-                      <input type="text" name="database_name" required class="form-control" id="database_name" placeholder="DB name">
-                  </div>
-                  <div class="form-group">
-                      <label for="user">Nom d'utilisateur</label>
-                      <input type="text" class="form-control" id="user" name="user" required placeholder="Username">
-                  </div>
-                  <div class="form-group">
-                      <label for="password">Mot de passe</label>
-                      <input type="password" class="form-control" id="password" name="password" required placeholder="Password">
-                  </div>
-                  <button type="submit" class="btn btn-primary w-100 mt-3">Se connecter</button>
-              </form>
-          </div>
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="connectDatabaseModalLabel">Connexion à la base de données</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
       </div>
+      <div class="modal-body">
+        <form id="connectDatabaseForm">
+          <div class="mb-3">
+            <label for="dbName" class="form-label">Nom de la base de données</label>
+            <input type="text" class="form-control" id="dbName" name="dbName" required>
+          </div>
+          <div class="mb-3">
+            <label for="dbUser" class="form-label">Utilisateur</label>
+            <input type="text" class="form-control" id="dbUser" name="dbUser" required>
+          </div>
+          <div class="mb-3">
+            <label for="dbPassword" class="form-label">Mot de passe</label>
+            <input type="password" class="form-control" id="dbPassword" name="dbPassword" required>
+          </div>
+          <div class="mb-3">
+            <label for="dbHost" class="form-label">Hôte</label>
+            <input type="text" class="form-control" id="dbHost" name="dbHost" required>
+          </div>
+          <div class="mb-3">
+            <label for="dbPort" class="form-label">Port</label>
+            <input type="text" class="form-control" id="dbPort" name="dbPort" required>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fermer</button>
+        <button type="button" class="btn btn-primary" id="connectDatabaseButton">Se connecter</button>
+      </div>
+    </div>
   </div>
 </div>
 
 <!-- Toast Bootstrap (Masqué au départ) -->
 <div class="toast-container position-fixed bottom-0 end-0 p-3" style="z-index: 1050;">
   <!-- Toast pour les erreurs -->
-  <div id="errorToast" class="toast text-white bg-danger border-0" role="alert" aria-live="assertive" aria-atomic="true">
-      <div class="d-flex">
-          <div class="toast-body">
-              <span id="errorMessage"></span>
-          </div>
-          <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
-      </div>
+  <div id="errorToast" class="toast" role="alert" aria-live="assertive" aria-atomic="true">
+    <div class="toast-header bg-danger text-white">
+        <strong class="me-auto">Erreur</strong>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="toast" aria-label="Close"></button>
+    </div>
+    <div class="toast-body">
+        <!-- Le message d'erreur sera inséré ici -->
+    </div>
   </div>
-
-  <!-- Toast pour le succès -->
-  <div id="successToast" class="toast text-white bg-success border-0" role="alert" aria-live="assertive" aria-atomic="true">
-      <div class="d-flex">
-          <div class="toast-body">
-               <span id="successMessage"></span>
-          </div>
-          <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
-      </div>
+  <!-- Toast pour les succès -->
+  <div id="successToast" class="toast" role="alert" aria-live="assertive" aria-atomic="true">
+    <div class="toast-header bg-success text-white">
+        <strong class="me-auto">Succès</strong>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="toast" aria-label="Close"></button>
+    </div>
+    <div class="toast-body">
+        <!-- Le message de succès sera inséré ici -->
+    </div>
   </div>
-</div>
 
 <!-- jQuery et AJAX -->
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
@@ -456,6 +463,209 @@
     });
 });
 
+</script>
+<!--script pour connexion  la base de donnees-->
+<!--script pour importation depuis dase de donnees-->
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    const connectButton = document.getElementById('connectDatabaseButton');
+    const selectTableButton = document.getElementById('selectTableButton');
+    const importDataButton = document.getElementById('importDataButton');
+    const tableSelect = document.getElementById('tableSelect');
+    const codeElementColumn = document.getElementById('codeElementColumn');
+    const descriptionColumn = document.getElementById('descriptionColumn');
+
+    let selectedTable = null;
+
+    // Fonction pour afficher un toast de succès
+    function showSuccessToast(message) {
+      const successToast = document.getElementById('successToast');
+      const toastBody = successToast.querySelector('.toast-body');
+      toastBody.textContent = message;
+
+      const toast = new bootstrap.Toast(successToast);
+      toast.show();
+    }
+
+    // Fonction pour afficher un toast d'erreur
+    function showErrorToast(message) {
+      const errorToast = document.getElementById('errorToast');
+      const toastBody = errorToast.querySelector('.toast-body');
+      toastBody.textContent = message;
+
+      const toast = new bootstrap.Toast(errorToast);
+      toast.show();
+    }
+
+    // Étape 1 : Connexion à la base de données
+    connectButton.addEventListener('click', async function () {
+      const dbName = document.getElementById('dbName').value;
+      const dbUser = document.getElementById('dbUser').value;
+      const dbPassword = document.getElementById('dbPassword').value;
+      const dbHost = document.getElementById('dbHost').value;
+      const dbPort = document.getElementById('dbPort').value;
+
+      try {
+        // Établir la connexion
+        const connectionResponse = await fetch("{% url 'connect_to_external_db' %}", {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCookie('csrftoken')
+          },
+          body: JSON.stringify({
+            dbName: dbName,
+            dbUser: dbUser,
+            dbPassword: dbPassword,
+            dbHost: dbHost,
+            dbPort: dbPort
+          })
+        });
+
+        const connectionData = await connectionResponse.json();
+        if (connectionData.status === 'success') {
+          showSuccessToast("Connexion réussie !");
+
+          // Fermer le modal de connexion
+          const connectModal = bootstrap.Modal.getInstance(document.getElementById('connectDatabaseModal'));
+          connectModal.hide();
+              // Fermer de force le modal et enlever le voile noir
+        forceCloseModal(document.getElementById('connectDatabaseModal'));
+
+          const tablesData = await tablesResponse.json();
+          if (tablesData.status === 'success') {
+            tableSelect.innerHTML = '<option value="">-- Choisir une table --</option>';
+            tablesData.tables.forEach(table => {
+              const option = document.createElement('option');
+              option.value = table;
+              option.textContent = table;
+              tableSelect.appendChild(option);
+            });
+          } else {
+            showErrorToast("Erreur : " + tablesData.message);
+          }
+        } else {
+          showErrorToast("Erreur : " + connectionData.message);
+        }
+      } catch (error) {
+        console.error('Erreur:', error);
+        showErrorToast("Une erreur est survenue lors de la connexion.");
+      }
+    });
+
+    // Étape 2 : Sélection de la table
+    selectTableButton.addEventListener('click', async function () {
+      selectedTable = tableSelect.value;
+
+      if (!selectedTable) {
+        showErrorToast("Veuillez sélectionner une table.");
+        return;
+      }
+
+      try {
+        // Récupérer les colonnes de la table sélectionnée
+        const columnsResponse = await fetch("{% url 'get_table_columns' %}", {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCookie('csrftoken')
+          },
+          body: JSON.stringify({
+            tableName: selectedTable
+          })
+        });
+
+        const columnsData = await columnsResponse.json();
+        if (columnsData.status === 'success') {
+          // Remplir les options de mapping
+          codeElementColumn.innerHTML = '';
+          descriptionColumn.innerHTML = '';
+          columnsData.columns.forEach(column => {
+            const option = document.createElement('option');
+            option.value = column;
+            option.textContent = column;
+            codeElementColumn.appendChild(option.cloneNode(true));
+            descriptionColumn.appendChild(option.cloneNode(true));
+          });
+
+          // Fermer le modal de sélection de table
+          const selectTableModal = bootstrap.Modal.getInstance(document.getElementById('selectTableModal'));
+          selectTableModal.hide();
+
+          // Ouvrir le modal de mapping des champs
+          const mappingFieldsModal = new bootstrap.Modal(document.getElementById('mappingFieldsModal'));
+          mappingFieldsModal.show();
+        } else {
+          showErrorToast("Erreur : " + columnsData.message);
+        }
+      } catch (error) {
+        console.error('Erreur:', error);
+        showErrorToast("Une erreur est survenue lors de la récupération des colonnes.");
+      }
+    });
+
+    // Étape 3 : Importation des données
+    importDataButton.addEventListener('click', async function () {
+      const codeElementCol = codeElementColumn.value;
+      const descriptionCol = descriptionColumn.value;
+
+      if (!codeElementCol || !descriptionCol) {
+        showErrorToast("Veuillez mapper tous les champs.");
+        return;
+      }
+
+      try {
+        // Importer les données
+        const importResponse = await fetch("{% url 'import_data' %}", {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCookie('csrftoken')
+            },
+            body: JSON.stringify({
+                tableName: selectedTable,
+                codeColumn: codeElementCol,
+                descriptionColumn: descriptionCol
+            })
+        });
+    
+        const importData = await importResponse.json();
+        if (importData.status === 'success') {
+            showSuccessToast("Données importées avec succès !");
+    
+            // Fermer le modal de mapping
+            const mappingFieldsModal = bootstrap.Modal.getInstance(document.getElementById('mappingFieldsModal'));
+            mappingFieldsModal.hide();
+    
+            // Nettoyer manuellement le backdrop
+            // Fermer de force le modal et enlever le voile noir
+        forceCloseModal(document.getElementById('elementModal'));
+            
+        } else {
+            showErrorToast("Erreur : " + importData.message);
+        }
+    } catch (error) {
+        console.error('Erreur:', error);
+        showErrorToast("Une erreur est survenue lors de l'importation.");
+    }
+    });
+  });
+
+  // Fonction pour récupérer le token CSRF
+  function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+      const cookies = document.cookie.split(';');
+      for (let i = 0; i < cookies.length; i++) {
+        const cookie = cookies[i].trim();
+        if (cookie.substring(0, name.length + 1) === (name + '=')) {
+          cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+          break;
+        }
+      }
+    }
+    return cookieValue;
+  }
 </script>
 
 

@@ -388,8 +388,16 @@ def get_columns(request):
     return JsonResponse({"status": "error", "message": "Méthode non autorisée"}, status=405)
 
 def get_tables(request):
-    if request.method == 'GET':  # Autorisez les requêtes GET
+    if request.method == 'GET':
         try:
+            # Vérifier si la configuration de la base de données externe est stockée dans la session
+            if 'external_db_config' not in request.session:
+                return JsonResponse({"status": "error", "message": "Aucune configuration de base de données externe trouvée"}, status=400)
+
+            # Configurer la connexion dynamique
+            connections.databases['external_db'] = request.session['external_db_config']
+
+            # Utiliser la connexion
             with connections['external_db'].cursor() as cursor:
                 cursor.execute("SHOW TABLES")
                 tables = [row[0] for row in cursor.fetchall()]
@@ -410,16 +418,16 @@ def connect_to_external_db(request):
             db_host = data.get('dbHost')
             db_port = data.get('dbPort')
 
-            # Configurer la connexion dynamique
-            connections.databases['external_db'] = {
+            # Stocker les informations de connexion dans la session
+            request.session['external_db_config'] = {
                 'ENGINE': 'django.db.backends.mysql',  # Ou autre moteur de base de données
                 'NAME': db_name,
                 'USER': db_user,
                 'PASSWORD': db_password,
                 'HOST': db_host,
                 'PORT': db_port,
-                'TIME_ZONE': settings.TIME_ZONE,  # Ajout du fuseau horaire
-                'CONN_MAX_AGE': 0,  # Permet d'éviter les connexions persistantes
+                'TIME_ZONE': settings.TIME_ZONE,
+                'CONN_MAX_AGE': 0,
                 'CONN_HEALTH_CHECKS': False,
                 'ATOMIC_REQUESTS': False,
                 'AUTOCOMMIT': True,
@@ -427,7 +435,7 @@ def connect_to_external_db(request):
                     'charset': 'utf8mb4',
                 },
             }
-
+            connections.databases['external_db'] = request.session['external_db_config']
             # Tester la connexion
             with connections['external_db'].cursor() as cursor:
                 cursor.execute("SELECT 1")
@@ -437,7 +445,6 @@ def connect_to_external_db(request):
         except Exception as e:
             return JsonResponse({"status": "error", "message": str(e)}, status=500)
     return JsonResponse({"status": "error", "message": "Méthode non autorisée"}, status=405)
-
 #ressource
 def import_dataRessource(request):
     print("Vue import_data appelée")  # Log de débogage
@@ -688,3 +695,97 @@ def get_couplage_json(request):
             'message': str(e)
         })
         
+
+
+
+
+
+#critere
+def get_critere_json(request):
+    try:
+        criteres = Critere.objects.all().order_by('nom')
+        critere_list = []
+        
+        for critere in criteres:
+            critere_list.append({
+                'idCritere': critere.idCritere,
+                'nom': critere.nom,
+                'expression': critere.expression,
+                'poids': critere.poids
+            })
+            
+        print("Données envoyées par Django :", critere_list)
+        
+        return JsonResponse({
+            'success': True,
+            'criteres': critere_list
+        })
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'message': str(e)
+        })
+        
+def delete_critere(request):
+    if request.method == 'POST':
+        critere_id = request.POST.get('idCritere')
+        try:
+            critere = get_object_or_404(Critere, idCritere=critere_id)
+            critere.delete()
+            return JsonResponse({
+                'success': True,
+                'message': "Critère supprimé avec succès!"
+            })
+        except Exception as e:
+            return JsonResponse({
+                'success': False,
+                'message': f"Erreur: {str(e)}"
+            })
+    
+    return JsonResponse({
+        'success': False,
+        'message': "Méthode non autorisée"
+    })
+    
+from django.shortcuts import get_object_or_404
+from django.http import JsonResponse
+from .models import Critere
+
+def save_critere(request):
+    if request.method == 'POST':
+        nom = request.POST.get('nom')
+        expression = request.POST.get('expression')
+        poids = request.POST.get('poids')
+        action = request.POST.get('action')
+        
+        try:
+            if action == 'add':
+                # Création d'un nouveau critère
+                critere = Critere(nom=nom, expression=expression, poids=poids)
+                critere.save()
+                return JsonResponse({
+                    'success': True,
+                    'message': "Critère ajouté avec succès!"
+                })
+            elif action == 'edit':
+                # Modification d'un critère existant
+                critere_id = request.POST.get('idCritere')
+                critere = get_object_or_404(Critere, idCritere=critere_id)
+                critere.nom = nom
+                critere.expression = expression
+                critere.poids = poids
+                critere.save()
+                return JsonResponse({
+                    'success': True,
+                    'message': "Critère modifié avec succès!"
+                })
+        except Exception as e:
+            return JsonResponse({
+                'success': False,
+                'message': f"Erreur: {str(e)}"
+            })
+    
+    return JsonResponse({
+        'success': False,
+        'message': "Méthode non autorisée"
+    })

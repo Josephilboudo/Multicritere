@@ -30,7 +30,8 @@ class Couplage(models.Model):
 class Critere(models.Model):
     idCritere = models.AutoField(primary_key=True)
     nom = models.CharField(max_length=50)
-    description = models.TextField()
+    expression = models.CharField(max_length=255)  # Expression mathématique ou logique
+    poids = models.FloatField(default=1.0)  # Poids du critère
     
     def __str__(self):
         return self.nom

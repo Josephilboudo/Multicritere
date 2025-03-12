@@ -103,7 +103,7 @@
     </button>
 
     <!-- Bouton droite (vert) -->
-    <button type="button" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#connectDatabaseModal">
+    <button type="button" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#selectTableModal" onclick="loadTables()">
         <i class="fas fa-database"></i>
     </button>
 </div>
@@ -193,45 +193,6 @@
 </div>
 
 <!-- Modal pour l'importation de la base de données -->
-<!-- Modal pour la connexion à la base de données -->
-<div class="modal fade" id="connectDatabaseModal" tabindex="-1" aria-labelledby="connectDatabaseModalLabel" aria-hidden="true">
-  <div class="modal-dialog">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h5 class="modal-title" id="connectDatabaseModalLabel">Connexion à la base de données</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-      </div>
-      <div class="modal-body">
-        <form id="connectDatabaseForm">
-          <div class="mb-3">
-            <label for="dbName" class="form-label">Nom de la base de données</label>
-            <input type="text" class="form-control" id="dbName" name="dbName" required>
-          </div>
-          <div class="mb-3">
-            <label for="dbUser" class="form-label">Utilisateur</label>
-            <input type="text" class="form-control" id="dbUser" name="dbUser" required>
-          </div>
-          <div class="mb-3">
-            <label for="dbPassword" class="form-label">Mot de passe</label>
-            <input type="password" class="form-control" id="dbPassword" name="dbPassword" required>
-          </div>
-          <div class="mb-3">
-            <label for="dbHost" class="form-label">Hôte</label>
-            <input type="text" class="form-control" id="dbHost" name="dbHost" required>
-          </div>
-          <div class="mb-3">
-            <label for="dbPort" class="form-label">Port</label>
-            <input type="text" class="form-control" id="dbPort" name="dbPort" required>
-          </div>
-        </form>
-      </div>
-      <div class="modal-footer">
-        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fermer</button>
-        <button type="button" class="btn btn-primary" id="connectDatabaseButton">Se connecter</button>
-      </div>
-    </div>
-  </div>
-</div>
 <!-- Modal pour sélectionner une table -->
 <div class="modal fade" id="selectTableModal" tabindex="-1" aria-labelledby="selectTableModalLabel" aria-hidden="true">
   <div class="modal-dialog">
@@ -315,216 +276,490 @@
 <div class="toast-container"></div>
 <!--script pour importation depuis dase de donnees-->
 <script>
-  document.addEventListener('DOMContentLoaded', function () {
-    const connectButton = document.getElementById('connectDatabaseButton');
-    const selectTableButton = document.getElementById('selectTableButton');
-    const importDataButton = document.getElementById('importDataButton');
-    const tableSelect = document.getElementById('tableSelect');
-    const codeElementColumn = document.getElementById('codeElementColumn');
-    const descriptionColumn = document.getElementById('descriptionColumn');
+// Main JavaScript for Element Management
 
-    let selectedTable = null;
-
-    // Fonction pour afficher un toast de succès
-    function showSuccessToast(message) {
-      const successToast = document.getElementById('successToast');
-      const toastBody = successToast.querySelector('.toast-body');
-      toastBody.textContent = message;
-
-      const toast = new bootstrap.Toast(successToast);
-      toast.show();
+// Utility function to get CSRF token from cookies
+function getCookie(name) {
+  let cookieValue = null;
+  if (document.cookie && document.cookie !== '') {
+    const cookies = document.cookie.split(';');
+    for (let i = 0; i < cookies.length; i++) {
+      const cookie = cookies[i].trim();
+      if (cookie.substring(0, name.length + 1) === (name + '=')) {
+        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+        break;
+      }
     }
+  }
+  return cookieValue;
+}
 
-    // Fonction pour afficher un toast d'erreur
-    function showErrorToast(message) {
-      const errorToast = document.getElementById('errorToast');
-      const toastBody = errorToast.querySelector('.toast-body');
-      toastBody.textContent = message;
+// Function to show a toast notification
+function showToast(message, type) {
+  const toastContainer = document.querySelector('.toast-container');
+  if (!toastContainer) {
+    console.error('Toast container not found');
+    return;
+  }
+  
+  const toast = document.createElement('div');
+  toast.classList.add('toast', 'show');
+  toast.setAttribute('role', 'alert');
+  toast.setAttribute('aria-live', 'assertive');
+  toast.setAttribute('aria-atomic', 'true');
+  
+  toast.innerHTML = `
+    <div class="toast-header bg-${type} text-white">
+      <strong class="me-auto">Notification</strong>
+      <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Close"></button>
+    </div>
+    <div class="toast-body">
+      ${message}
+    </div>
+  `;
+  
+  toastContainer.appendChild(toast);
+  
+  setTimeout(() => {
+    toast.classList.remove('show');
+    setTimeout(() => {
+      toast.remove();
+    }, 500);
+  }, 5000);
+}
 
-      const toast = new bootstrap.Toast(errorToast);
-      toast.show();
-    }
+// Function to show success toast
+function showSuccessToast(message) {
+  const successToast = document.getElementById('successToast');
+  if (!successToast) {
+    showToast(message, 'success');
+    return;
+  }
+  
+  const toastBody = successToast.querySelector('.toast-body');
+  toastBody.textContent = message;
+  
+  const toast = new bootstrap.Toast(successToast);
+  toast.show();
+}
 
-    // Étape 1 : Connexion à la base de données
-    connectButton.addEventListener('click', async function () {
-      const dbName = document.getElementById('dbName').value;
-      const dbUser = document.getElementById('dbUser').value;
-      const dbPassword = document.getElementById('dbPassword').value;
-      const dbHost = document.getElementById('dbHost').value;
-      const dbPort = document.getElementById('dbPort').value;
+// Function to show error toast
+function showErrorToast(message) {
+  const errorToast = document.getElementById('errorToast');
+  if (!errorToast) {
+    showToast(message, 'danger');
+    return;
+  }
+  
+  const toastBody = errorToast.querySelector('.toast-body');
+  toastBody.textContent = message;
+  
+  const toast = new bootstrap.Toast(errorToast);
+  toast.show();
+}
 
-      try {
-        // Établir la connexion
-        const connectionResponse = await fetch("{% url 'connect_to_external_db' %}", {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'X-CSRFToken': getCookie('csrftoken')
-          },
-          body: JSON.stringify({
-            dbName: dbName,
-            dbUser: dbUser,
-            dbPassword: dbPassword,
-            dbHost: dbHost,
-            dbPort: dbPort
-          })
-        });
+// Function to force close a modal and cleanup
+function forceCloseModal(modalElement) {
+  if (!modalElement) return;
 
-        const connectionData = await connectionResponse.json();
-        if (connectionData.status === 'success') {
-          showSuccessToast("Connexion réussie !");
+  let modalInstance = bootstrap.Modal.getInstance(modalElement);
+  if (modalInstance) {
+    modalInstance.hide();
+  } else {
+    modalElement.classList.remove('show');
+    modalElement.setAttribute('aria-hidden', 'true');
+    modalElement.style.display = 'none';
+  }
 
-          // Fermer le modal de connexion
-          const connectModal = bootstrap.Modal.getInstance(document.getElementById('connectDatabaseModal'));
-          connectModal.hide();
+  // Supprimer les overlays restants après 300ms (temps d'animation Bootstrap)
+  setTimeout(() => {
+    document.querySelectorAll('.modal-backdrop').forEach(el => el.remove());
+    document.body.classList.remove('modal-open');
+    document.body.style.overflow = '';
+    document.body.style.paddingRight = '';
+  }, 300);
+}
 
-          // Ouvrir le modal de sélection de table
-          const selectTableModal = new bootstrap.Modal(document.getElementById('selectTableModal'));
-          selectTableModal.show();
+// Function to clean up modals and backgrounds
+function cleanupModals() {
+  // Supprime toutes les modal-backdrop
+  document.querySelectorAll('.modal-backdrop').forEach(el => el.remove());
+  
+  // Réinitialise le body
+  document.body.classList.remove('modal-open');
+  document.body.style.overflow = '';
+  document.body.style.paddingRight = '';
+}
 
-          // Charger les tables disponibles
-          const tablesResponse = await fetch("{% url 'get_tables' %}", {
-            method: 'GET',
-            headers: {
-              'Content-Type': 'application/json',
-              'X-CSRFToken': getCookie('csrftoken')
-            }
-          });
+// Function to reset the element form
+function resetForm() {
+  const elementForm = document.getElementById('elementForm');
+  if (elementForm) {
+    elementForm.reset();
+    const formAction = document.getElementById('formAction');
+    const codeElement = document.getElementById('codeElement');
+    const elementModalLabel = document.getElementById('elementModalLabel');
+    
+    if (formAction) formAction.value = 'add';
+    if (codeElement) codeElement.readOnly = false;
+    if (elementModalLabel) elementModalLabel.textContent = 'Ajouter un élément';
+  }
+}
 
-          const tablesData = await tablesResponse.json();
-          if (tablesData.status === 'success') {
-            tableSelect.innerHTML = '<option value="">-- Choisir une table --</option>';
-            tablesData.tables.forEach(table => {
-              const option = document.createElement('option');
-              option.value = table;
-              option.textContent = table;
-              tableSelect.appendChild(option);
-            });
-          } else {
-            showErrorToast("Erreur : " + tablesData.message);
-          }
-        } else {
-          showErrorToast("Erreur : " + connectionData.message);
-        }
-      } catch (error) {
-        console.error('Erreur:', error);
-        showErrorToast("Une erreur est survenue lors de la connexion.");
+// Function to prepare the form for editing
+function editElement(code, description) {
+  const formAction = document.getElementById('formAction');
+  const codeElement = document.getElementById('codeElement');
+  const descriptionField = document.getElementById('description');
+  const elementModalLabel = document.getElementById('elementModalLabel');
+  const elementModal = document.getElementById('elementModal');
+  
+  if (formAction) formAction.value = 'edit';
+  if (codeElement) {
+    codeElement.value = code;
+    codeElement.readOnly = true;
+  }
+  if (descriptionField) descriptionField.value = description;
+  if (elementModalLabel) elementModalLabel.textContent = 'Modifier un élément';
+  
+  if (elementModal) {
+    const modal = new bootstrap.Modal(elementModal);
+    modal.show();
+  }
+}
+
+// Function to prepare for element deletion
+function deleteElement(code) {
+  const confirmDeleteButton = document.getElementById('confirmDeleteButton');
+  const deleteModal = document.getElementById('deleteModal');
+  
+  if (confirmDeleteButton) confirmDeleteButton.setAttribute('data-code', code);
+  if (deleteModal) {
+    const modal = new bootstrap.Modal(deleteModal);
+    modal.show();
+  }
+}
+
+// Function to build HTML table from elements data
+function buildTableHTML(elements) {
+  let html = `
+    <table class="table table-striped">
+      <thead>
+        <tr>
+          <th>Code</th>
+          <th>Description</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>`;
+  
+  if (elements.length === 0) {
+    html += `
+      <tr>
+        <td colspan="3" class="text-center">Aucun élément disponible</td>
+      </tr>`;
+  } else {
+    elements.forEach(element => {
+      html += `
+        <tr>
+          <td>${element.codeElement}</td>
+          <td>${element.description}</td>
+          <td>
+            <button class="btn btn-info btn-sm" onclick="editElement('${element.codeElement}', '${element.description}')">
+              <i class="fas fa-edit"></i>
+            </button>
+            <button class="btn btn-danger btn-sm" onclick="deleteElement('${element.codeElement}')">
+              <i class="fas fa-trash"></i>
+            </button>
+          </td>
+        </tr>`;
+    });
+  }
+  
+  html += `
+      </tbody>
+    </table>`;
+  
+  return html;
+}
+
+// Function to refresh the element list
+function refreshElementList() {
+  fetch('/get_elements_json/') // Updated with relative URL
+    .then(response => response.json())
+    .then(data => {
+      if (data.success) {
+        const tableHTML = buildTableHTML(data.elements);
+        const container = document.getElementById('element-list-container');
+        if (container) container.innerHTML = tableHTML;
+      } else {
+        showToast('Erreur lors du chargement des données', 'danger');
+      }
+    })
+    .catch(error => {
+      console.error('Erreur lors du rechargement de la liste:', error);
+      showToast('Erreur lors du rechargement de la liste', 'danger');
+    });
+}
+
+// Function to load database tables
+async function loadTables() {
+  try {
+    // Get CSRF token
+    const csrftoken = getCookie('csrftoken');
+    
+    // Send request to get tables
+    const response = await fetch('/get_tables/', { // Updated with relative URL
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRFToken': csrftoken
       }
     });
 
-    // Étape 2 : Sélection de la table
-    selectTableButton.addEventListener('click', async function () {
-      selectedTable = tableSelect.value;
+    if (!response.ok) {
+      throw new Error(`Erreur HTTP: ${response.status}`);
+    }
 
+    const data = await response.json();
+    console.log("Données des tables :", data);  // Debug
+
+    if (data.status === 'success') {
+      // Fill the table dropdown
+      const tableSelect = document.getElementById('tableSelect');
+      if (tableSelect) {
+        tableSelect.innerHTML = '<option value="">-- Choisir une table --</option>';
+        data.tables.forEach(table => {
+          const option = document.createElement('option');
+          option.value = table;
+          option.textContent = table;
+          tableSelect.appendChild(option);
+        });
+      }
+    } else {
+      showErrorToast("Erreur : " + data.message);
+    }
+  } catch (error) {
+    console.error('Erreur:', error);
+    showErrorToast("Échec de la récupération des tables.");
+  }
+}
+
+// Main initialization when DOM is loaded
+document.addEventListener('DOMContentLoaded', function() {
+  console.log('DOM fully loaded');
+  
+  // Get CSRF token
+  const csrfToken = getCookie('csrftoken');
+  
+  // Clean up any leftover modals
+  cleanupModals();
+  
+  // Set up event handlers for the element form
+  const saveButton = document.getElementById('saveButton');
+  if (saveButton) {
+    saveButton.addEventListener('click', function() {
+      const form = document.getElementById('elementForm');
+      if (!form) {
+        console.error('Element form not found');
+        return;
+      }
+      
+      const formData = new FormData(form);
+      const elementModal = document.getElementById('elementModal');
+      
+      fetch('/save_element/', { // Updated with relative URL
+        method: 'POST',
+        headers: {
+          'X-CSRFToken': csrfToken
+        },
+        body: formData
+      })
+      .then(response => response.json())
+      .then(data => {
+        if (data.success) {
+          showToast(data.message, 'success');
+          refreshElementList();
+          
+          // Force close modal
+          if (elementModal) forceCloseModal(elementModal);
+        } else {
+          showToast(data.message, 'danger');
+        }
+      })
+      .catch(error => {
+        console.error('Erreur:', error);
+        showToast('Une erreur est survenue', 'danger');
+      });
+    });
+  }
+  
+  // Set up delete confirmation
+  const confirmDeleteButton = document.getElementById('confirmDeleteButton');
+  if (confirmDeleteButton) {
+    confirmDeleteButton.addEventListener('click', function() {
+      const code = this.getAttribute('data-code');
+      const deleteModal = document.getElementById('deleteModal');
+      
+      const formData = new FormData();
+      formData.append('codeElement', code);
+      
+      fetch('/delete_element/', { // Updated with relative URL
+        method: 'POST',
+        headers: {
+          'X-CSRFToken': csrfToken
+        },
+        body: formData
+      })
+      .then(response => response.json())
+      .then(data => {
+        if (data.success) {
+          showToast(data.message, 'success');
+          refreshElementList();
+          
+          // Force close modal
+          if (deleteModal) forceCloseModal(deleteModal);
+        } else {
+          showToast(data.message, 'danger');
+        }
+      })
+      .catch(error => {
+        console.error('Erreur:', error);
+        showToast('Une erreur est survenue', 'danger');
+      });
+    });
+  }
+  
+  // Set up database table selection
+  const selectTableButton = document.getElementById('selectTableButton');
+  if (selectTableButton) {
+    selectTableButton.addEventListener('click', async function() {
+      const tableSelect = document.getElementById('tableSelect');
+      if (!tableSelect) {
+        console.error('Table select element not found');
+        return;
+      }
+      
+      const selectedTable = tableSelect.value;
       if (!selectedTable) {
         showErrorToast("Veuillez sélectionner une table.");
         return;
       }
-
+      
       try {
-        // Récupérer les colonnes de la table sélectionnée
-        const columnsResponse = await fetch("{% url 'get_table_columns' %}", {
+        // Get columns for the selected table
+        const response = await fetch('/get_table_columns/', { // Updated with relative URL
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'X-CSRFToken': getCookie('csrftoken')
+            'X-CSRFToken': csrfToken
           },
           body: JSON.stringify({
             tableName: selectedTable
           })
         });
-
-        const columnsData = await columnsResponse.json();
-        if (columnsData.status === 'success') {
-          // Remplir les options de mapping
-          codeElementColumn.innerHTML = '';
-          descriptionColumn.innerHTML = '';
-          columnsData.columns.forEach(column => {
-            const option = document.createElement('option');
-            option.value = column;
-            option.textContent = column;
-            codeElementColumn.appendChild(option.cloneNode(true));
-            descriptionColumn.appendChild(option.cloneNode(true));
-          });
-
-          // Fermer le modal de sélection de table
-          const selectTableModal = bootstrap.Modal.getInstance(document.getElementById('selectTableModal'));
-          selectTableModal.hide();
-
-          // Ouvrir le modal de mapping des champs
-          const mappingFieldsModal = new bootstrap.Modal(document.getElementById('mappingFieldsModal'));
-          mappingFieldsModal.show();
+        
+        const data = await response.json();
+        if (data.status === 'success') {
+          // Fill mapping dropdowns
+          const codeElementColumn = document.getElementById('codeElementColumn');
+          const descriptionColumn = document.getElementById('descriptionColumn');
+          
+          if (codeElementColumn && descriptionColumn) {
+            codeElementColumn.innerHTML = '';
+            descriptionColumn.innerHTML = '';
+            
+            data.columns.forEach(column => {
+              const option = document.createElement('option');
+              option.value = column;
+              option.textContent = column;
+              codeElementColumn.appendChild(option.cloneNode(true));
+              descriptionColumn.appendChild(option.cloneNode(true));
+            });
+            
+            // Close table selection modal
+            const selectTableModal = document.getElementById('selectTableModal');
+            if (selectTableModal) {
+              const modal = bootstrap.Modal.getInstance(selectTableModal);
+              if (modal) modal.hide();
+            }
+            
+            // Open field mapping modal
+            const mappingFieldsModal = document.getElementById('mappingFieldsModal');
+            if (mappingFieldsModal) {
+              const modal = new bootstrap.Modal(mappingFieldsModal);
+              modal.show();
+            }
+          }
         } else {
-          showErrorToast("Erreur : " + columnsData.message);
+          showErrorToast("Erreur : " + data.message);
         }
       } catch (error) {
         console.error('Erreur:', error);
         showErrorToast("Une erreur est survenue lors de la récupération des colonnes.");
       }
     });
-
-    // Étape 3 : Importation des données
-    importDataButton.addEventListener('click', async function () {
+  }
+  
+  // Set up data import
+  const importDataButton = document.getElementById('importDataButton');
+  if (importDataButton) {
+    importDataButton.addEventListener('click', async function() {
+      const tableSelect = document.getElementById('tableSelect');
+      const codeElementColumn = document.getElementById('codeElementColumn');
+      const descriptionColumn = document.getElementById('descriptionColumn');
+      
+      if (!tableSelect || !codeElementColumn || !descriptionColumn) {
+        console.error('Required form elements not found');
+        return;
+      }
+      
+      const selectedTable = tableSelect.value;
       const codeElementCol = codeElementColumn.value;
       const descriptionCol = descriptionColumn.value;
-
+      
       if (!codeElementCol || !descriptionCol) {
         showErrorToast("Veuillez mapper tous les champs.");
         return;
       }
-
+      
       try {
-        // Importer les données
-        const importResponse = await fetch("{% url 'import_data' %}", {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRFToken': getCookie('csrftoken')
-            },
-            body: JSON.stringify({
-                tableName: selectedTable,
-                codeColumn: codeElementCol,
-                descriptionColumn: descriptionCol
-            })
+        // Import data
+        const response = await fetch('/import_data/', { // Updated with relative URL
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': csrfToken
+          },
+          body: JSON.stringify({
+            tableName: selectedTable,
+            codeColumn: codeElementCol,
+            descriptionColumn: descriptionCol
+          })
         });
-    
-        const importData = await importResponse.json();
-        if (importData.status === 'success') {
-            showSuccessToast("Données importées avec succès !");
-    
-            // Fermer le modal de mapping
-            const mappingFieldsModal = bootstrap.Modal.getInstance(document.getElementById('mappingFieldsModal'));
-            mappingFieldsModal.hide();
-    
-            // Nettoyer manuellement le backdrop
-            // Fermer de force le modal et enlever le voile noir
-        forceCloseModal(document.getElementById('elementModal'));
-            
+        
+        const data = await response.json();
+        if (data.status === 'success') {
+          showSuccessToast("Données importées avec succès !");
+          
+          // Refresh the element list
+          refreshElementList();
+          
+          // Close mapping modal
+          const mappingFieldsModal = document.getElementById('mappingFieldsModal');
+          if (mappingFieldsModal) {
+            forceCloseModal(mappingFieldsModal);
+          }
         } else {
-            showErrorToast("Erreur : " + importData.message);
+          showErrorToast("Erreur : " + data.message);
         }
-    } catch (error) {
+      } catch (error) {
         console.error('Erreur:', error);
         showErrorToast("Une erreur est survenue lors de l'importation.");
-    }
-    });
-  });
-
-  // Fonction pour récupérer le token CSRF
-  function getCookie(name) {
-    let cookieValue = null;
-    if (document.cookie && document.cookie !== '') {
-      const cookies = document.cookie.split(';');
-      for (let i = 0; i < cookies.length; i++) {
-        const cookie = cookies[i].trim();
-        if (cookie.substring(0, name.length + 1) === (name + '=')) {
-          cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
-          break;
-        }
       }
-    }
-    return cookieValue;
+    });
   }
+});
 </script>
 
 
