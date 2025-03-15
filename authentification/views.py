@@ -29,7 +29,7 @@ class CustomLoginView(LoginView):
     template_name = 'login.html'  # Mets le chemin correct vers ton fichier
     
 class CustomLogoutView(LogoutView):
-    next_page = 'login'  # Redirige vers la page de connexion après déconnexion
+    next_page = 'login.html'  # Redirige vers la page de connexion après déconnexion
     
 def register_view(request):
     if request.method == 'POST':
