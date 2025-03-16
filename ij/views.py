@@ -792,26 +792,28 @@ def save_critere(request):
         'success': False,
         'message': "Méthode non autorisée"
     })
-    
-    
-    
-    #pour les operations de jointure
 def execute_join(request):
     if request.method == 'POST':
         try:
-            # Récupérer les données de la requête
             data = json.loads(request.body)
             join_type = data.get('joinType')
             table1 = data.get('table1')
-            join_column1 = data.get('joinColumn1')  # Nom corrigé
+            join_column1 = data.get('joinColumn1')
             table2 = data.get('table2')
-            join_column2 = data.get('joinColumn2')  # Nom corrigé
-            selected_columns = data.get('selectedColumns')  # Utiliser les colonnes sélectionnées
+            join_column2 = data.get('joinColumn2')
+            selected_columns = data.get('selectedColumns')
+
+            # Vérifier si une table est virtuelle
+            if table1.startswith("Jointure_"):
+                # Traiter table1 comme une table virtuelle
+                # (Vous devrez stocker les tables virtuelles côté serveur)
+                pass
+            elif table2.startswith("Jointure_"):
+                # Traiter table2 comme une table virtuelle
+                pass
 
             # Générer la requête SQL
-            # Si selectedColumns n'est pas fourni, utilisez "SELECT *"
             select_clause = selected_columns if selected_columns else "*"
-            
             query = f"""
                 SELECT {select_clause} FROM {table1}
                 {join_type} {table2}
@@ -821,12 +823,10 @@ def execute_join(request):
             # Exécuter la requête
             with connections['external_db'].cursor() as cursor:
                 cursor.execute(query)
-                columns = [col[0] for col in cursor.description]  # Noms des colonnes
-                rows = cursor.fetchall()  # Données
+                columns = [col[0] for col in cursor.description]
+                rows = cursor.fetchall()
 
-            # Formater les résultats
             results = [dict(zip(columns, row)) for row in rows]
-
             return JsonResponse({"status": "success", "data": results})
         except Exception as e:
             return JsonResponse({"status": "error", "message": str(e)}, status=500)
