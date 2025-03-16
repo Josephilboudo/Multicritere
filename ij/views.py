@@ -34,6 +34,9 @@ def ressource(request):
     ressources= Ressource.objects.all().order_by('codeRessource')
     return render(request, 'ressource.html', {'ressources': ressources})
 
+def crit(request):
+    return render(request, 'crit.html')
+
 def element(request):
     elements = Element.objects.all().order_by('codeElement')
     return render(request, 'element.html', {'elements': elements})
@@ -789,3 +792,42 @@ def save_critere(request):
         'success': False,
         'message': "Méthode non autorisée"
     })
+    
+    
+    
+    #pour les operations de jointure
+def execute_join(request):
+    if request.method == 'POST':
+        try:
+            # Récupérer les données de la requête
+            data = json.loads(request.body)
+            join_type = data.get('joinType')
+            table1 = data.get('table1')
+            join_column1 = data.get('joinColumn1')  # Nom corrigé
+            table2 = data.get('table2')
+            join_column2 = data.get('joinColumn2')  # Nom corrigé
+            selected_columns = data.get('selectedColumns')  # Utiliser les colonnes sélectionnées
+
+            # Générer la requête SQL
+            # Si selectedColumns n'est pas fourni, utilisez "SELECT *"
+            select_clause = selected_columns if selected_columns else "*"
+            
+            query = f"""
+                SELECT {select_clause} FROM {table1}
+                {join_type} {table2}
+                ON {table1}.{join_column1} = {table2}.{join_column2}
+            """
+
+            # Exécuter la requête
+            with connections['external_db'].cursor() as cursor:
+                cursor.execute(query)
+                columns = [col[0] for col in cursor.description]  # Noms des colonnes
+                rows = cursor.fetchall()  # Données
+
+            # Formater les résultats
+            results = [dict(zip(columns, row)) for row in rows]
+
+            return JsonResponse({"status": "success", "data": results})
+        except Exception as e:
+            return JsonResponse({"status": "error", "message": str(e)}, status=500)
+    return JsonResponse({"status": "error", "message": "Méthode non autorisée"}, status=405)

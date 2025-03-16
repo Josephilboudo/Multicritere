@@ -17,7 +17,7 @@ Including another URLconf
 from django import views
 from django.contrib import admin
 from django.urls import include, path
-from .views import connect_database, connect_to_external_db, delete_couplage, delete_critere, delete_element, delete_ressource, element_list, get_columns, get_couplage_json, get_critere_json, get_ressource_json, get_table_columns, get_tables, home, element, couplage, import_data, import_dataCouplage, ressource, critere, save_couplage, save_critere, save_element, get_elements_json, import_elements, import_dataRessource, save_ressource
+from .views import connect_database, connect_to_external_db, crit, delete_couplage, delete_critere, delete_element, delete_ressource, element_list, execute_join, get_columns, get_couplage_json, get_critere_json, get_ressource_json, get_table_columns, get_tables, home, element, couplage, import_data, import_dataCouplage, ressource, critere, save_couplage, save_critere, save_element, get_elements_json, import_elements, import_dataRessource, save_ressource
 
 urlpatterns = [
     path('admin/', admin.site.urls),
@@ -64,4 +64,10 @@ urlpatterns = [
     path('critere/json/', get_critere_json, name='get_critere_json'),
     path('critere/save/', save_critere, name='save_critere'),
     path('critere/delete/', delete_critere, name='delete_critere'),
+    
+    
+    
+    #concerne mon test sur les operations de jointure avec critere
+    path('crit/', crit, name='crit'),
+    path('execute_join/', execute_join, name='execute_join'),
 ]

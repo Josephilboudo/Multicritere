@@ -1,0 +1,600 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Création de Critère</title>
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        /* Style personnalisé */
+        .modal-content {
+            padding: 20px;
+        }
+        .table {
+            margin-top: 20px;
+        }
+        /* Style pour afficher les tables en ligne */
+        .tables-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        .table-checkbox {
+            margin-right: 5px;
+        }
+        /* Style pour améliorer l'affichage des colonnes dans le modal de jointure */
+        #columnsToInclude {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        .columns-section {
+            flex: 1;
+            min-width: 45%;
+            padding: 10px;
+            background-color: #f8f9fa;
+            border-radius: 5px;
+        }
+        /* Assurer que le tableau est responsive */
+        .table-responsive {
+            overflow-x: auto;
+            width: 100%;
+        }
+    </style>
+</head>
+<body>
+    <div class="container mt-5">
+        <!-- Bouton pour ouvrir le modal -->
+        <button id="openModalButton" class="btn btn-primary">Créer un critère</button>
+
+        <!-- Modal -->
+        <div id="criteriaModal" class="modal" tabindex="-1">
+            <div class="modal-dialog modal-lg">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Créer un critère</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <input type="text" id="criteriaName" class="form-control mb-3" placeholder="Nom du critère" />
+                        
+                        <!-- Sélection des tables -->
+                        <h3>Tables disponibles</h3>
+                        <div id="tablesList" class="tables-container mb-3"></div>
+                        
+                        <!-- Boutons pour jointures et opérations -->
+                        <button id="addJoin" class="btn btn-secondary mb-3">Ajouter une jointure</button>
+                        <button id="addOperation" class="btn btn-secondary mb-3">Ajouter une opération</button>
+                        <button id="executeJoinButton" class="btn btn-success mb-3">Exécuter la jointure</button>
+                        <div id="joinResults" class="table-responsive mb-3">
+                            <!-- Les résultats de la jointure seront affichés ici -->
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button id="saveCriteria" class="btn btn-primary">Enregistrer</button>
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fermer</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap JS et dépendances -->
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.6/dist/umd/popper.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.min.js"></script>
+
+    <!-- Script JavaScript -->
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            const modal = new bootstrap.Modal(document.getElementById('criteriaModal'));
+            const openModalButton = document.getElementById("openModalButton");
+            const tablesList = document.getElementById("tablesList");
+            const addJoinButton = document.getElementById("addJoin");
+            const addOperationButton = document.getElementById("addOperation");
+            const saveCriteriaButton = document.getElementById("saveCriteria");
+            const executeJoinButton = document.getElementById("executeJoinButton");
+        
+            let selectedTables = []; // Pour stocker les tables sélectionnées
+            let selectedColumns = []; // Pour stocker les colonnes sélectionnées
+            let joins = []; // Pour stocker les jointures
+        
+            // Ouvrir le modal
+            openModalButton.addEventListener("click", () => {
+                modal.show();
+                loadTables();
+            });
+        
+            // Charger les tables disponibles
+            function loadTables() {
+                fetch("/get_tables/", {
+                    method: "GET",
+                    headers: { "Content-Type": "application/json" },
+                })
+                    .then((response) => response.json())
+                    .then((data) => {
+                        if (data.status === "success") {
+                            tablesList.innerHTML = ""; // Vider la liste actuelle
+                            data.tables.forEach((table) => {
+                                const tableCheckbox = document.createElement("input");
+                                tableCheckbox.type = "checkbox";
+                                tableCheckbox.id = table;
+                                tableCheckbox.value = table;
+                                tableCheckbox.classList.add("form-check-input", "table-checkbox");
+                                tableCheckbox.addEventListener("change", (e) => {
+                                    if (e.target.checked) {
+                                        selectedTables.push(table);
+                                    } else {
+                                        selectedTables = selectedTables.filter((t) => t !== table);
+                                    }
+                                });
+        
+                                const label = document.createElement("label");
+                                label.htmlFor = table;
+                                label.textContent = table;
+                                label.classList.add("form-check-label");
+        
+                                const div = document.createElement("div");
+                                div.classList.add("form-check", "form-check-inline");
+                                div.appendChild(tableCheckbox);
+                                div.appendChild(label);
+        
+                                tablesList.appendChild(div);
+                            });
+                        } else {
+                            // Remplacer l'alerte par un message dans l'interface
+                            showMessage("Erreur : " + data.message, "danger");
+                        }
+                    });
+            }
+        
+            // Afficher un message temporaire dans l'interface
+            function showMessage(message, type = "info") {
+                // Créer un élément pour le message
+                const messageDiv = document.createElement("div");
+                messageDiv.classList.add("alert", `alert-${type}`, "mt-2");
+                messageDiv.textContent = message;
+                
+                // Ajouter au début du modal body
+                const modalBody = document.querySelector(".modal-body");
+                modalBody.insertBefore(messageDiv, modalBody.firstChild);
+                
+                // Faire disparaître après quelques secondes
+                setTimeout(() => {
+                    messageDiv.style.opacity = "0";
+                    messageDiv.style.transition = "opacity 0.5s";
+                    setTimeout(() => messageDiv.remove(), 500);
+                }, 3000);
+            }
+        
+            // Récupérer les colonnes d'une table
+            function fetchColumns(tableName) {
+                const csrfToken = getCookie('csrftoken'); // Récupérer le token CSRF
+        
+                return fetch("/get_columns/", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                        "X-CSRFToken": csrfToken, // Ajouter le token CSRF
+                    },
+                    body: JSON.stringify({ tableName: tableName }),
+                })
+                    .then((response) => {
+                        if (!response.ok) {
+                            throw new Error("Erreur réseau");
+                        }
+                        return response.json();
+                    })
+                    .then((data) => {
+                        if (data.status === "success") {
+                            return data.columns; // Retourner les colonnes
+                        } else {
+                            throw new Error(data.message);
+                        }
+                    });
+            }
+        
+            // Gérer le clic sur "Ajouter une jointure"
+            addJoinButton.addEventListener("click", () => {
+                if (selectedTables.length < 2) {
+                    showMessage("Veuillez sélectionner au moins deux tables pour créer une jointure.", "warning");
+                    return;
+                }
+                openJoinModal();
+            });
+        
+            // Ouvrir un modal pour ajouter une jointure
+            function openJoinModal() {
+                // Créer le modal dynamiquement
+                const joinModalElement = document.createElement("div");
+                joinModalElement.classList.add("modal", "fade");
+                joinModalElement.innerHTML = `
+                    <div class="modal-dialog modal-lg">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h5 class="modal-title">Ajouter une jointure</h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                            </div>
+                            <div class="modal-body">
+                                <div id="joinModalMessages"></div>
+                                <div class="row mb-3">
+                                    <div class="col-md-6">
+                                        <label for="table1">Table 1 :</label>
+                                        <select id="table1" class="form-select"></select>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label for="table2">Table 2 :</label>
+                                        <select id="table2" class="form-select"></select>
+                                    </div>
+                                </div>
+                                <div class="row mb-3">
+                                    <div class="col-md-6">
+                                        <label for="joinColumn1">Champ de Table 1 pour la jointure :</label>
+                                        <select id="joinColumn1" class="form-select"></select>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label for="joinColumn2">Champ de Table 2 pour la jointure :</label>
+                                        <select id="joinColumn2" class="form-select"></select>
+                                    </div>
+                                </div>
+                                <h3>Sélectionnez les colonnes à inclure dans le résultat</h3>
+                                <div id="columnsToInclude" class="mt-3"></div>
+                            </div>
+                            <div class="modal-footer">
+                                <button id="saveJoin" class="btn btn-primary">Enregistrer</button>
+                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fermer</button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+        
+                // Ajouter le modal au DOM
+                document.body.appendChild(joinModalElement);
+        
+                // Initialiser le modal avec Bootstrap
+                const joinModal = new bootstrap.Modal(joinModalElement);
+        
+                // Fonction pour afficher des messages dans ce modal
+                const showJoinModalMessage = (message, type = "info") => {
+                    const messagesContainer = joinModalElement.querySelector("#joinModalMessages");
+                    const messageDiv = document.createElement("div");
+                    messageDiv.classList.add("alert", `alert-${type}`, "mb-3");
+                    messageDiv.textContent = message;
+                    
+                    messagesContainer.innerHTML = ""; // Effacer les messages précédents
+                    messagesContainer.appendChild(messageDiv);
+                    
+                    // Faire disparaître après quelques secondes
+                    setTimeout(() => {
+                        messageDiv.style.opacity = "0";
+                        messageDiv.style.transition = "opacity 0.5s";
+                        setTimeout(() => messageDiv.remove(), 500);
+                    }, 3000);
+                };
+        
+                // Remplir les sélecteurs de tables
+                const table1Select = joinModalElement.querySelector("#table1");
+                const table2Select = joinModalElement.querySelector("#table2");
+        
+                selectedTables.forEach((table) => {
+                    const option1 = document.createElement("option");
+                    option1.value = table;
+                    option1.textContent = table;
+                    table1Select.appendChild(option1);
+        
+                    const option2 = document.createElement("option");
+                    option2.value = table;
+                    option2.textContent = table;
+                    table2Select.appendChild(option2);
+                });
+                
+                // Sélectionner par défaut les deux premières tables différentes
+                if (selectedTables.length >= 2) {
+                    table1Select.value = selectedTables[0];
+                    table2Select.value = selectedTables[1];
+                }
+        
+                // Fonction pour mettre à jour les champs de jointure
+                const updateJoinColumns = async () => {
+                    const table1 = table1Select.value;
+                    const table2 = table2Select.value;
+        
+                    if (!table1 || !table2) {
+                        return; // Ne rien faire si les deux tables ne sont pas sélectionnées
+                    }
+        
+                    // Récupérer les colonnes des deux tables
+                    const columns1 = await fetchColumns(table1);
+                    const columns2 = await fetchColumns(table2);
+        
+                    // Mettre à jour les champs de jointure pour Table 1
+                    const joinColumn1Select = joinModalElement.querySelector("#joinColumn1");
+                    joinColumn1Select.innerHTML = ""; // Vider les options précédentes
+                    columns1.forEach((column) => {
+                        const option = document.createElement("option");
+                        option.value = column;
+                        option.textContent = column;
+                        joinColumn1Select.appendChild(option);
+                    });
+        
+                    // Mettre à jour les champs de jointure pour Table 2
+                    const joinColumn2Select = joinModalElement.querySelector("#joinColumn2");
+                    joinColumn2Select.innerHTML = ""; // Vider les options précédentes
+                    columns2.forEach((column) => {
+                        const option = document.createElement("option");
+                        option.value = column;
+                        option.textContent = column;
+                        joinColumn2Select.appendChild(option);
+                    });
+        
+                    // Mettre à jour les colonnes à inclure dans les résultats
+                    updateColumnsToInclude(table1, table2, columns1, columns2);
+                };
+        
+                // Mettre à jour les champs de jointure lorsque les tables sont sélectionnées
+                table1Select.addEventListener("change", updateJoinColumns);
+                table2Select.addEventListener("change", updateJoinColumns);
+        
+                // Lancer la mise à jour initiale des colonnes
+                updateJoinColumns();
+        
+                // Fonction pour afficher les colonnes à inclure dans les résultats
+                const updateColumnsToInclude = (table1, table2, columns1, columns2) => {
+                    const columnsToInclude = joinModalElement.querySelector("#columnsToInclude");
+                    columnsToInclude.innerHTML = ""; // Vider les options précédentes
+        
+                    // Créer la section pour les colonnes de la table 1
+                    const table1Section = document.createElement("div");
+                    table1Section.classList.add("columns-section");
+                    
+                    const table1Header = document.createElement("h5");
+                    table1Header.textContent = `Colonnes de ${table1}`;
+                    table1Section.appendChild(table1Header);
+        
+                    columns1.forEach((column) => {
+                        const checkbox = document.createElement("input");
+                        checkbox.type = "checkbox";
+                        checkbox.id = `${table1}_${column}`;
+                        checkbox.value = `${table1}.${column}`;
+                        checkbox.checked = true; // Par défaut, toutes les colonnes sont sélectionnées
+                        checkbox.classList.add("form-check-input");
+        
+                        const label = document.createElement("label");
+                        label.htmlFor = `${table1}_${column}`;
+                        label.textContent = column;
+                        label.classList.add("form-check-label");
+        
+                        const div = document.createElement("div");
+                        div.classList.add("form-check");
+                        div.appendChild(checkbox);
+                        div.appendChild(label);
+        
+                        table1Section.appendChild(div);
+                    });
+        
+                    // Créer la section pour les colonnes de la table 2
+                    const table2Section = document.createElement("div");
+                    table2Section.classList.add("columns-section");
+                    
+                    const table2Header = document.createElement("h5");
+                    table2Header.textContent = `Colonnes de ${table2}`;
+                    table2Section.appendChild(table2Header);
+        
+                    columns2.forEach((column) => {
+                        const checkbox = document.createElement("input");
+                        checkbox.type = "checkbox";
+                        checkbox.id = `${table2}_${column}`;
+                        checkbox.value = `${table2}.${column}`;
+                        checkbox.checked = true; // Par défaut, toutes les colonnes sont sélectionnées
+                        checkbox.classList.add("form-check-input");
+        
+                        const label = document.createElement("label");
+                        label.htmlFor = `${table2}_${column}`;
+                        label.textContent = column;
+                        label.classList.add("form-check-label");
+        
+                        const div = document.createElement("div");
+                        div.classList.add("form-check");
+                        div.appendChild(checkbox);
+                        div.appendChild(label);
+        
+                        table2Section.appendChild(div);
+                    });
+        
+                    // Ajouter les deux sections au conteneur
+                    columnsToInclude.appendChild(table1Section);
+                    columnsToInclude.appendChild(table2Section);
+                };
+        
+                // Enregistrer la jointure
+                const saveJoinButton = joinModalElement.querySelector("#saveJoin");
+                saveJoinButton.addEventListener("click", () => {
+                    const table1 = joinModalElement.querySelector("#table1").value;
+                    const joinColumn1 = joinModalElement.querySelector("#joinColumn1").value; // Champ de jointure de Table 1
+                    const table2 = joinModalElement.querySelector("#table2").value;
+                    const joinColumn2 = joinModalElement.querySelector("#joinColumn2").value; // Champ de jointure de Table 2
+        
+                    if (table1 === table2) {
+                        showJoinModalMessage("Les tables doivent être différentes.", "warning");
+                        return;
+                    }
+        
+                    if (!joinColumn1 || !joinColumn2) {
+                        showJoinModalMessage("Veuillez sélectionner des champs pour la jointure.", "warning");
+                        return;
+                    }
+        
+                    // Récupérer les colonnes sélectionnées pour les résultats
+                    const selectedColumns = [];
+                    joinModalElement.querySelectorAll("#columnsToInclude input[type='checkbox']:checked").forEach((checkbox) => {
+                        selectedColumns.push(checkbox.value);
+                    });
+        
+                    if (selectedColumns.length === 0) {
+                        showJoinModalMessage("Veuillez sélectionner au moins une colonne à inclure.", "warning");
+                        return;
+                    }
+        
+                    // Enregistrer la jointure avec les champs sélectionnés
+                    joins.push({
+                        type: "INNER JOIN",
+                        table1,
+                        joinColumn1, // Champ de jointure de Table 1
+                        table2,
+                        joinColumn2, // Champ de jointure de Table 2
+                        selectedColumns,
+                    });
+        
+                    console.log("Jointure ajoutée :", {
+                        type: "INNER JOIN",
+                        table1,
+                        joinColumn1,
+                        table2,
+                        joinColumn2,
+                        selectedColumns,
+                    });
+        
+                    // Afficher un message de confirmation dans le modal principal
+                    showMessage(`Jointure ajoutée : INNER JOIN entre ${table1}.${joinColumn1} et ${table2}.${joinColumn2}`, "success");
+        
+                    // Fermer le modal
+                    joinModal.hide();
+                    document.body.removeChild(joinModalElement);
+                });
+        
+                // Afficher le modal
+                joinModal.show();
+            }
+        
+            // Gérer le clic sur "Exécuter la jointure"
+            executeJoinButton.addEventListener("click", () => {
+                console.log("Bouton Exécuter la jointure cliqué"); // Message de débogage
+                if (joins.length === 0) {
+                    showMessage("Aucune jointure n'a été configurée.", "warning");
+                    return;
+                }
+                const lastJoin = joins[joins.length - 1];
+                console.log("Dernière jointure configurée :", lastJoin); // Message de débogage
+                executeJoin(lastJoin);
+            });
+        
+            // Exécuter la jointure
+            function executeJoin(join) {
+                console.log("Exécution de la jointure :", join); // Message de débogage
+                const csrfToken = getCookie('csrftoken');
+        
+                // Construire la clause SELECT avec les colonnes sélectionnées
+                const selectedColumns = join.selectedColumns.join(", ");
+        
+                // Construire la clause ON pour la jointure
+                const joinCondition = `${join.table1}.${join.joinColumn1} = ${join.table2}.${join.joinColumn2}`;
+        
+                console.log("Requête SQL générée :", `
+                    SELECT ${selectedColumns}
+                    FROM ${join.table1}
+                    ${join.type} ${join.table2}
+                    ON ${joinCondition}
+                `); // Message de débogage
+        
+                fetch("/execute_join/", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                        "X-CSRFToken": csrfToken,
+                    },
+                    body: JSON.stringify({
+                        joinType: join.type,
+                        table1: join.table1,
+                        joinColumn1: join.joinColumn1,
+                        table2: join.table2,
+                        joinColumn2: join.joinColumn2,
+                        selectedColumns: selectedColumns,
+                        joinCondition: joinCondition,
+                    }),
+                })
+                    .then((response) => {
+                        console.log("Réponse du serveur :", response); // Message de débogage
+                        return response.json();
+                    })
+                    .then((data) => {
+                        console.log("Données reçues du serveur :", data); // Message de débogage
+                        if (data.status === "success") {
+                            displayJoinResults(data.data);
+                        } else {
+                            showMessage("Erreur : " + data.message, "danger");
+                        }
+                    })
+                    .catch((error) => {
+                        console.error("Erreur lors de l'exécution de la jointure :", error);
+                        showMessage("Erreur de communication avec le serveur.", "danger");
+                    });
+            }
+        
+            // Afficher les résultats de la jointure
+            function displayJoinResults(data) {
+                const resultsContainer = document.getElementById("joinResults");
+                resultsContainer.innerHTML = ""; // Vider les résultats précédents
+        
+                if (data.length === 0) {
+                    resultsContainer.innerHTML = "<p>Aucune donnée trouvée.</p>";
+                    return;
+                }
+        
+                // Créer un tableau HTML avec une classe pour gérer le défilement horizontal
+                const tableWrapper = document.createElement("div");
+                tableWrapper.classList.add("table-responsive");
+                
+                const table = document.createElement("table");
+                table.classList.add("table", "table-bordered", "table-striped");
+        
+                // Ajouter l'en-tête du tableau
+                const thead = document.createElement("thead");
+                const headerRow = document.createElement("tr");
+                Object.keys(data[0]).forEach((column) => {
+                    const th = document.createElement("th");
+                    th.textContent = column;
+                    headerRow.appendChild(th);
+                });
+                thead.appendChild(headerRow);
+                table.appendChild(thead);
+        
+                // Ajouter les lignes de données
+                const tbody = document.createElement("tbody");
+                data.forEach((row) => {
+                    const tr = document.createElement("tr");
+                    Object.values(row).forEach((value) => {
+                        const td = document.createElement("td");
+                        td.textContent = value;
+                        tr.appendChild(td);
+                    });
+                    tbody.appendChild(tr);
+                });
+                table.appendChild(tbody);
+                
+                // Ajouter le tableau dans le wrapper
+                tableWrapper.appendChild(table);
+        
+                // Ajouter le wrapper au conteneur de résultats
+                resultsContainer.appendChild(tableWrapper);
+            }
+        
+            // Fonction pour récupérer le token CSRF
+            function getCookie(name) {
+                let cookieValue = null;
+                if (document.cookie && document.cookie !== '') {
+                    const cookies = document.cookie.split(';');
+                    for (let i = 0; i < cookies.length; i++) {
+                        const cookie = cookies[i].trim();
+                        if (cookie.startsWith(name + '=')) {
+                            cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                            break;
+                        }
+                    }
+                }
+                return cookieValue;
+            }
+        });
+    </script>
+</body>
+</html>
