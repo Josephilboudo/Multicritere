@@ -11,7 +11,7 @@ from django.views.decorators.csrf import csrf_exempt
 from django.core.files.storage import default_storage
 import pandas as pd
 from .form import FichierCSVForm
-from .models import Element, Ressource, Critere, Contrainte, Solution, Couplage, Objectif
+from .models import CouplageCritere, Element, Ressource, Critere, Contrainte, Solution, Couplage, Objectif
 from .utils import get_dynamic_connection
 
 def home(request):
@@ -59,7 +59,8 @@ def couplage(request):
 
 def objectif(request):
     objectifs = Objectif.objects.all()
-    return render(request, 'objectif.html', {'objectifs':objectifs})
+    criteres = Critere.objects.all()
+    return render(request, 'objectif.html', {'objectifs':objectifs, 'criteres': criteres})
 
 
 """ Elements """
@@ -816,3 +817,46 @@ def execute_join(request):
         except Exception as e:
             return JsonResponse({"status": "error", "message": str(e)}, status=500)
     return JsonResponse({"status": "error", "message": "Méthode non autorisée"}, status=405)
+
+
+
+#objectifs
+@csrf_exempt
+def add_objectif(request):
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.body)
+            description = data.get('description')
+            type_obj = data.get('type')
+            idcritere = data.get('idCouplageCritere')
+            
+            # Get the Critere object
+            try:
+                critere = Critere.objects.get(idCritere=idcritere)
+                
+                # Create and save the Objectif
+                objectif = Objectif(description=description, type=type_obj, idCritere=critere)
+                objectif.save()
+                
+                return JsonResponse({'status': 'success', 'id': objectif.idObjectif})
+            except Critere.DoesNotExist:
+                return JsonResponse({'status': 'error', 'message': 'Critere not found'}, status=404)
+                
+        except json.JSONDecodeError:
+            return JsonResponse({'status': 'error', 'message': 'Invalid JSON'}, status=400)
+    
+    return JsonResponse({'status': 'error', 'message': 'Invalid request method'}, status=405)
+@csrf_exempt
+def delete_objectif(request, id):
+    if request.method == 'DELETE':
+        try:
+            objectif = Objectif.objects.get(pk=id)
+            objectif.delete()
+            return JsonResponse({'status': 'success'})
+        except Objectif.DoesNotExist:
+            return JsonResponse({'status': 'error', 'message': 'Objectif not found'}, status=404)
+
+
+
+
+

@@ -1,16 +1,17 @@
-{%load static%}<!DOCTYPE html>
+{% load static %}
+<!DOCTYPE html>
 <html lang="en">
 
-{%include 'head.html'%}
+<head>
+  {% include 'head.html' %}
+</head>
+
 <body>
   <div class="container-scroller">
-    {%include 'nav.html'%}
+    {% include 'nav.html' %}
     <!-- partial -->
     <div class="container-fluid page-body-wrapper">
-      <!-- partial:partials/_settings-panel.html -->
-      <!-- partial -->
-      <!-- partial:partials/_sidebar.html -->
-      {%include 'sidebar.html'%}
+      {% include 'sidebar.html' %}
       <!-- partial -->
       <div class="main-panel">
         <div class="content-wrapper">
@@ -22,9 +23,7 @@
                   <h6 class="font-weight-normal mb-0">All systems are running smoothly! You have <span class="text-primary">3 unread alerts!</span></h6>
                 </div>
                 <div class="col-12 col-xl-4">
-                 <div class="justify-content-end d-flex">
-                  
-                 </div>
+                  <div class="justify-content-end d-flex"></div>
                 </div>
               </div>
             </div>
@@ -89,128 +88,180 @@
           </div>
 
           <div class="row">
-    <div class="col-md-12 grid-margin stretch-card">
-        <div class="card">
-            <div class="card-body">
-                <div class="row">
+            <div class="col-md-12 grid-margin stretch-card">
+              <div class="card">
+                <div class="card-body">
+                  <div class="row">
                     <div class="col-12">
+                      <h2>Liste des objectifs</h2>
+                      <div class="d-flex justify-content-between mb-3">
                         <!-- Bouton pour ouvrir la modal d'ajout -->
-  <h2>Liste des objectifs</h2>
-  <div class="d-flex justify-content-between mb-3">
-    <!-- Bouton gauche -->
-    <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#elementModal" onclick="resetForm()">
-        <i class="fas fa-plus"></i>
-    </button>
+                        <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#elementModal" onclick="resetForm()">
+                          <i class="fas fa-plus"></i> Ajouter un objectif
+                        </button>
 
-    <!-- Bouton droite (vert) -->
-    <button type="button" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#selectTableModal" onclick="loadTables()">
-        <i class="fas fa-database"></i>
-    </button>
-</div>
-
-  <div id="element-list-container">
-      <table class="table table-striped">
-          <thead>
-              <tr>
-                  <th>Code</th>
-                  <th>Description</th>
-                  <th>Actions</th>
-              </tr>
-          </thead>
-          <tbody>
-              {% for objectif in objectifs %}
-              <tr>
-                  <td>{{ objectif.Nom }}</td>
-                  <td>{{ objectif.description }}</td>
-                  <td>{{ objectif.Type}}</td>
-                  <td>{{ objectif.idCouplageCritere}}</td>
-                  <td></td>
-                  <td>
-                      <button class="btn btn-danger btn-sm" onclick="deleteObjectif('{{ objectif.idCouplageCritere }}')">
-                          <i class="fas fa-trash"></i>
-                      </button>
-                  </td>
-              </tr>
-              {% empty %}
-              <tr>
-                  <td colspan="3" class="text-center">Aucun élément disponible</td>
-              </tr>
-              {% endfor %}
-          </tbody>
-      </table>
-  </div>
-</div>
-
-<!-- Modal pour CRUD -->
-<div class="modal fade" id="elementModal" tabindex="-1" aria-labelledby="elementModalLabel" aria-hidden="true">
-  <div class="modal-dialog">
-      <div class="modal-content">
-          <div class="modal-header">
-              <h5 class="modal-title" id="elementModalLabel">Ajouter/Modifier un élément</h5>
-              <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                      <!-- Tableau des objectifs -->
+                      <div id="element-list-container">
+                        <table class="table table-striped">
+                          <thead>
+                            <tr>
+                              <th>Nom</th>
+                              <th>Description</th>
+                              <th>Type</th>
+                              <th>Critère de couplage</th>
+                              <th>Actions</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {% for objectif in objectifs %}
+                            <tr>
+                              <td>{{ objectif.Nom }}</td>
+                              <td>{{ objectif.description }}</td>
+                              <td>{{ objectif.type }}</td>
+                              <td>{{ objectif.idCritere }}</td>
+                              <td>
+                                <button class="btn btn-danger btn-sm" onclick="deleteObjectif('{{ objectif.idObjectif }}')">
+                                  <i class="fas fa-trash"></i> Supprimer
+                                </button>
+                              </td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                              <td colspan="5" class="text-center">Aucun objectif disponible</td>
+                            </tr>
+                            {% endfor %}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
-          <form id="elementForm">
-              {% csrf_token %}
-              <div class="modal-body">
-                  <input type="hidden" name="action" id="formAction" value="add">
-                  
-                  <div class="mb-3">
-                      <label for="codeElement" class="form-label">Code de l'élément</label>
-                      <input type="text" class="form-control" id="codeElement" name="codeElement" required>
-                  </div>
-                  
-                  <div class="mb-3">
-                      <label for="description" class="form-label">Description</label>
-                      <input type="text" class="form-control" id="description" name="description" required>
-                  </div>
-              </div>
-              <div class="modal-footer">
-                  <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
-                  <button type="button" id="saveButton" class="btn btn-primary">Enregistrer</button>
-              </div>
-          </form>
+        </div>
       </div>
+    </div>
   </div>
-</div>
 
-<!-- Modal de confirmation de suppression -->
-<div class="modal fade" id="deleteModal" tabindex="-1" aria-hidden="true">
-  <div class="modal-dialog">
+  <!-- Modal pour ajouter/modifier un objectif -->
+  <div class="modal fade" id="elementModal" tabindex="-1" aria-labelledby="elementModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
       <div class="modal-content">
-          <div class="modal-header">
-              <h5 class="modal-title">Confirmer la suppression</h5>
-              <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-          </div>
+        <div class="modal-header">
+          <h5 class="modal-title" id="elementModalLabel">Ajouter un objectif</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <form id="elementForm">
+          {% csrf_token %}
           <div class="modal-body">
-              Êtes-vous sûr de vouloir supprimer cet élément ?
+            <div class="mb-3">
+              <label for="description" class="form-label">Description</label>
+              <input type="text" class="form-control" id="description" name="description" required>
+            </div>
+            <div class="mb-3">
+              <label for="type" class="form-label">Type</label>
+              <select class="form-control" id="type" name="type" required>
+                <option value="max">Max</option>
+                <option value="min">Min</option>
+              </select>
+            </div>
+            <div class="mb-3">
+              <label for="idCouplageCritere" class="form-label">Critère de couplage</label>
+              <select class="form-control" id="idCouplageCritere" name="idCouplageCritere" required>
+                {% for critere in criteres %}
+                <option value="{{ critere.idCritere }}">{{ critere.nom }}</option>
+                {% endfor %}
+              </select>
+            </div>
           </div>
           <div class="modal-footer">
-              <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
-              <button type="button" id="confirmDeleteButton" class="btn btn-danger">Supprimer</button>
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+            <button type="button" id="saveButton" class="btn btn-primary">Enregistrer</button>
           </div>
+        </form>
       </div>
+    </div>
   </div>
-</div>
 
-<!-- Toast pour les erreurs -->
-<div id="errorToast" class="toast" role="alert" aria-live="assertive" aria-atomic="true">
-  <div class="toast-header bg-danger text-white">
-      <strong class="me-auto">Erreur</strong>
-      <button type="button" class="btn-close btn-close-white" data-bs-dismiss="toast" aria-label="Close"></button>
+  <!-- Modal de confirmation de suppression -->
+  <div class="modal fade" id="deleteModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">Confirmer la suppression</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          Êtes-vous sûr de vouloir supprimer cet objectif ?
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+          <button type="button" id="confirmDeleteButton" class="btn btn-danger">Supprimer</button>
+        </div>
+      </div>
+    </div>
   </div>
-  <div class="toast-body">
-      <!-- Le message d'erreur sera inséré ici -->
-  </div>
-</div>
-<!-- Toast pour les succès -->
-<div id="successToast" class="toast" role="alert" aria-live="assertive" aria-atomic="true">
-  <div class="toast-header bg-success text-white">
-      <strong class="me-auto">Succès</strong>
-      <button type="button" class="btn-close btn-close-white" data-bs-dismiss="toast" aria-label="Close"></button>
-  </div>
-  <div class="toast-body">
-      <!-- Le message de succès sera inséré ici -->
-  </div>
-</div>
+
+  <!-- Scripts JavaScript -->
+  <script>
+    function resetForm() {
+      document.getElementById('elementForm').reset();
+      document.getElementById('formAction').value = 'add';
+    }
+
+    function saveObjectif() {
+        const formData = {
+            description: document.getElementById('description').value,
+            type: document.getElementById('type').value,
+            idCouplageCritere: document.getElementById('idCouplageCritere').value,
+        };
+    
+        fetch('/add-objectif/', {
+            method: 'POST',
+            body: JSON.stringify(formData),
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+            },
+        })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`HTTP error! Status: ${response.status}`);
+            }
+            return response.json();
+        })
+        .then(data => {
+            if (data.status === 'success') {
+                alert('Objectif ajouté avec succès !');
+                location.reload();
+            } else {
+                alert('Erreur : ' + data.message);
+            }
+        })
+        .catch(error => {
+            console.error('Erreur :', error);
+            alert('Une erreur est survenue: ' + error.message);
+        });
+    }
+    function deleteObjectif(id) {
+      if (confirm('Êtes-vous sûr de vouloir supprimer cet objectif ?')) {
+        fetch(`/delete-objectif/${id}/`, {
+          method: 'DELETE',
+          headers: {
+            'X-CSRFToken': '{{ csrf_token }}'
+          }
+        })
+        .then(response => response.json())
+        .then(data => {
+          if (data.status === 'success') {
+            location.reload(); // Recharger la page pour voir les changements
+          }
+        });
+      }
+    }
+
+    document.getElementById('saveButton').addEventListener('click', saveObjectif);
+  </script>
 </body>
 </html>

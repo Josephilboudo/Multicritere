@@ -40,8 +40,7 @@ class Critere(models.Model):
 class CouplageCritere(models.Model):
     idValeur = models.AutoField(primary_key=True)
     couplage = models.ForeignKey(Couplage, on_delete=models.CASCADE)
-    critere = models.ForeignKey(Critere, on_delete=models.CASCADE)
-    valeur= models.FloatField()
+    valeur= models.JSONField()
     
 class Contrainte(models.Model):
     idContrainte = models.AutoField(primary_key=True)
@@ -56,7 +55,7 @@ class Objectif(models.Model):
     idObjectif = models.AutoField(primary_key=True)
     description = models.TextField()
     type = models.CharField(max_length=15)
-    idCouplageCritere = models.ForeignKey(CouplageCritere, on_delete= models.CASCADE)
+    idCritere = models.ForeignKey(Critere, on_delete= models.CASCADE)
     
     def __str__(self):
         return self.description
