@@ -11,7 +11,7 @@ from django.views.decorators.csrf import csrf_exempt
 from django.core.files.storage import default_storage
 import pandas as pd
 from .form import FichierCSVForm
-from .models import Element, Ressource, Critere, Contrainte, Solution, Couplage
+from .models import Element, Ressource, Critere, Contrainte, Solution, Couplage, Objectif
 from .utils import get_dynamic_connection
 
 def home(request):
@@ -56,6 +56,11 @@ def couplage(request):
         'ressources': ressources,
     }
     return render(request, 'couplage.html', context)
+
+def objectif(request):
+    objectifs = Objectif.objects.all()
+    return render(request, 'objectif.html', {'objectifs':objectifs})
+
 
 """ Elements """
 def element_list(request):
@@ -701,8 +706,6 @@ def get_couplage_json(request):
 
 
 
-
-
 #critere
 def get_critere_json(request):
     try:
@@ -754,44 +757,26 @@ from django.shortcuts import get_object_or_404
 from django.http import JsonResponse
 from .models import Critere
 
+@csrf_exempt
 def save_critere(request):
     if request.method == 'POST':
-        nom = request.POST.get('nom')
-        expression = request.POST.get('expression')
-        poids = request.POST.get('poids')
-        action = request.POST.get('action')
-        
+        data = json.loads(request.body)
+        name = data.get('name')
+        description = data.get('description')
+        expression = data.get('expression')
+
+        if not name or not description or not expression:
+            return JsonResponse({'success': False, 'error': 'Tous les champs sont obligatoires.'})
+
         try:
-            if action == 'add':
-                # Création d'un nouveau critère
-                critere = Critere(nom=nom, expression=expression, poids=poids)
-                critere.save()
-                return JsonResponse({
-                    'success': True,
-                    'message': "Critère ajouté avec succès!"
-                })
-            elif action == 'edit':
-                # Modification d'un critère existant
-                critere_id = request.POST.get('idCritere')
-                critere = get_object_or_404(Critere, idCritere=critere_id)
-                critere.nom = nom
-                critere.expression = expression
-                critere.poids = poids
-                critere.save()
-                return JsonResponse({
-                    'success': True,
-                    'message': "Critère modifié avec succès!"
-                })
+            critere = Critere(nom=name, description=description, expression=expression)
+            critere.save()
+            return JsonResponse({'success': True})
         except Exception as e:
-            return JsonResponse({
-                'success': False,
-                'message': f"Erreur: {str(e)}"
-            })
-    
-    return JsonResponse({
-        'success': False,
-        'message': "Méthode non autorisée"
-    })
+            return JsonResponse({'success': False, 'error': str(e)})
+
+    return JsonResponse({'success': False, 'error': 'Méthode non autorisée.'})
+
 def execute_join(request):
     if request.method == 'POST':
         try:

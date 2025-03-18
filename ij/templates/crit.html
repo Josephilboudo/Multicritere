@@ -33,6 +33,7 @@
                     </div>
                     <div class="modal-body">
                         <input type="text" id="criteriaName" class="form-control mb-3" placeholder="Nom du critère" />
+                        <textarea id="criteriaDescription" class="form-control mb-3" placeholder="Description du critère"></textarea>
                         
                         <!-- Sélection des tables -->
                         <h3>Tables disponibles</h3>
@@ -49,6 +50,7 @@
                         <!-- Boutons pour jointures et opérations -->
                         <button id="addJoin" class="btn btn-secondary mb-3">Ajouter une jointure</button>
                         <button id="addArithmeticButton" class="btn btn-secondary mb-3">Ajouter une opération arithmétique</button>
+                        <button id="addAggregationButton" class="btn btn-secondary mb-3">Ajouter une agrégation</button>
                         <button type="button" class="btn btn-info" id="mappingButton">
                             <i class="bi bi-link"></i> Mapping
                         </button>
@@ -62,6 +64,7 @@
                     </div>
                     <div class="modal-footer">
                         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fermer</button>
+                        <button id="saveCriteriaButton" class="btn btn-primary">Enregistrer le critère</button>
                     </div>
                 </div>
             </div>
@@ -141,6 +144,37 @@
                 </div>
             </div>
         </div>
+
+        <!-- Modal pour les agrégations -->
+        <div id="aggregationModal" class="modal fade" tabindex="-1">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Ajouter une agrégation</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <select id="aggregationFunction" class="form-control mb-3">
+                            <option value="COUNT">COUNT</option>
+                            <option value="SUM">SUM</option>
+                            <option value="AVG">AVG</option>
+                            <option value="MIN">MIN</option>
+                            <option value="MAX">MAX</option>
+                        </select>
+                        <select id="aggregationColumn" class="form-control mb-3"></select>
+                        <div class="form-check">
+                            <input type="checkbox" id="groupByCheckbox" class="form-check-input">
+                            <label for="groupByCheckbox" class="form-check-label">Ajouter un GROUP BY</label>
+                        </div>
+                        <select id="groupByColumn" class="form-control mb-3" disabled></select>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fermer</button>
+                        <button id="confirmAggregation" class="btn btn-primary">Confirmer</button>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.6/dist/umd/popper.min.js"></script>
@@ -153,6 +187,7 @@
             const joinModal = new bootstrap.Modal(document.getElementById('joinModal'));
             const arithmeticModal = new bootstrap.Modal(document.getElementById('arithmeticModal'));
             const mappingModal = new bootstrap.Modal(document.getElementById('mappingModal'));
+            const aggregationModal = new bootstrap.Modal(document.getElementById('aggregationModal'));
 
             // Éléments du DOM
             const openModalButton = document.getElementById("openModalButton");
@@ -160,6 +195,7 @@
             const columnsList = document.getElementById("columnsList");
             const addJoinButton = document.getElementById("addJoin");
             const addArithmeticButton = document.getElementById("addArithmeticButton");
+            const addAggregationButton = document.getElementById("addAggregationButton");
             const mappingButton = document.getElementById("mappingButton");
             const generateQueryButton = document.getElementById("generateQueryButton");
             const executeQueryButton = document.getElementById("executeQueryButton");
@@ -177,6 +213,12 @@
             const mappingColumn1 = document.getElementById("mappingColumn1");
             const mappingColumn2 = document.getElementById("mappingColumn2");
             const confirmMappingButton = document.getElementById("confirmMapping");
+            const aggregationFunction = document.getElementById("aggregationFunction");
+            const aggregationColumn = document.getElementById("aggregationColumn");
+            const groupByCheckbox = document.getElementById("groupByCheckbox");
+            const groupByColumn = document.getElementById("groupByColumn");
+            const confirmAggregation = document.getElementById("confirmAggregation");
+            const saveCriteriaButton = document.getElementById("saveCriteriaButton");
 
             // Variables globales
             let selectedTables = [];
@@ -185,6 +227,8 @@
             let arithmeticOperations = [];
             let mappingConditions = [];
             let tableColumns = {};
+            let aggregationOperations = [];
+            let groupByColumns = [];
 
             // Récupérer le jeton CSRF
             const csrfToken = document.querySelector('meta[name="csrf-token"]').content;
@@ -235,8 +279,8 @@
 
                 if (column1 && column2 && operator) {
                     const operationName = `${column1.split('.')[1]}_${operator}_${column2.split('.')[1]}`;
-                    const operationColumn = `(${column1} ${operator} ${column2}) AS ${operationName}`;
-                    arithmeticOperations.push(operationColumn);
+                    const operationColumn = `(${column1} ${operator} ${column2}) AS result`;
+                    arithmeticOperations = [operationColumn]; // Une seule opération est autorisée
                     updateSelectedColumnsList();
                     arithmeticModal.hide();
                     alert(`Opération ajoutée : ${operationName}`);
@@ -263,6 +307,84 @@
                 } else {
                     alert("Veuillez sélectionner deux colonnes pour le mapping.");
                 }
+            });
+
+            // Ouvrir le modal d'agrégation
+            addAggregationButton.addEventListener("click", () => {
+                populateAggregationColumns();
+                aggregationModal.show();
+            });
+
+            // Activer ou désactiver le champ groupByColumn
+            groupByCheckbox.addEventListener("change", () => {
+                groupByColumn.disabled = !groupByCheckbox.checked;
+            });
+
+            // Confirmer l'agrégation
+            confirmAggregation.addEventListener("click", () => {
+                const functionName = aggregationFunction.value;
+                const column = aggregationColumn.value;
+
+                if (functionName && column) {
+                    const aggregationName = `${functionName}_${column.split('.')[1]}`;
+                    const aggregationColumnName = `${functionName}(${column}) AS result`;
+                    aggregationOperations = [aggregationColumnName]; // Une seule agrégation est autorisée
+
+                    if (groupByCheckbox.checked && groupByColumn.value) {
+                        groupByColumns = [groupByColumn.value];
+                    } else {
+                        groupByColumns = [];
+                    }
+
+                    updateSelectedColumnsList();
+                    aggregationModal.hide();
+                    alert(`Agrégation ajoutée : ${aggregationName}`);
+                } else {
+                    alert("Veuillez sélectionner une fonction et une colonne pour l'agrégation.");
+                }
+            });
+
+            // Enregistrer le critère
+            saveCriteriaButton.addEventListener("click", () => {
+                const criteriaName = document.getElementById("criteriaName").value;
+                const criteriaDescription = document.getElementById("criteriaDescription").value;
+                const sqlQuery = generatedSQL.textContent;
+
+                if (!criteriaName || !criteriaDescription || !sqlQuery) {
+                    alert("Veuillez remplir tous les champs et générer une requête SQL.");
+                    return;
+                }
+
+                fetch("/critere/save/", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                        "X-CSRFToken": csrfToken
+                    },
+                    body: JSON.stringify({
+                        name: criteriaName,
+                        description: criteriaDescription,
+                        expression: sqlQuery
+                    })
+                })
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error("Erreur réseau");
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    if (data.success) {
+                        alert("Critère enregistré avec succès !");
+                        criteriaModal.hide();
+                    } else {
+                        alert("Erreur lors de l'enregistrement du critère : " + data.error);
+                    }
+                })
+                .catch(error => {
+                    console.error("Erreur lors de l'enregistrement du critère :", error);
+                    alert("Erreur lors de l'enregistrement du critère. Vérifiez la console pour plus de détails.");
+                });
             });
 
             // Charger les tables disponibles
@@ -391,6 +513,12 @@
                         div.className = "text-primary";
                         selectedColumnsList.appendChild(div);
                     });
+                    aggregationOperations.forEach(operation => {
+                        const div = document.createElement("div");
+                        div.textContent = operation;
+                        div.className = "text-success";
+                        selectedColumnsList.appendChild(div);
+                    });
                 }
             }
 
@@ -461,6 +589,31 @@
                 });
             }
 
+            // Remplir les colonnes pour l'agrégation
+            function populateAggregationColumns() {
+                aggregationColumn.innerHTML = "";
+                groupByColumn.innerHTML = "";
+
+                const emptyOption = document.createElement("option");
+                emptyOption.value = "";
+                emptyOption.textContent = "Sélectionnez une colonne";
+                aggregationColumn.appendChild(emptyOption.cloneNode(true));
+                groupByColumn.appendChild(emptyOption.cloneNode(true));
+
+                selectedTables.forEach(table => {
+                    if (tableColumns[table]) {
+                        tableColumns[table].forEach(column => {
+                            const fullColumnName = `${table}.${column}`;
+                            const option = document.createElement("option");
+                            option.value = fullColumnName;
+                            option.textContent = fullColumnName;
+                            aggregationColumn.appendChild(option.cloneNode(true));
+                            groupByColumn.appendChild(option.cloneNode(true));
+                        });
+                    }
+                });
+            }
+
             // Mettre à jour la liste des jointures
             function updateJoinsList() {
                 const joinsList = document.getElementById("joinsList");
@@ -523,17 +676,26 @@
                     return;
                 }
 
-                if (selectedColumns.length === 0 && arithmeticOperations.length === 0) {
-                    alert("Veuillez sélectionner au moins une colonne ou ajouter une opération arithmétique.");
+                if (selectedColumns.length === 0 && arithmeticOperations.length === 0 && aggregationOperations.length === 0) {
+                    alert("Veuillez sélectionner au moins une colonne ou ajouter une opération arithmétique ou une agrégation.");
                     return;
                 }
 
-                const allColumns = [...selectedColumns, ...arithmeticOperations].join(", ");
-                let sqlQuery = `SELECT ${allColumns} FROM ${selectedTables[0]}`;
+                // Définir la colonne à retourner
+                let selectedColumn = "";
+                if (arithmeticOperations.length > 0) {
+                    selectedColumn = arithmeticOperations[0]; // Résultat de l'opération arithmétique
+                } else if (aggregationOperations.length > 0) {
+                    selectedColumn = aggregationOperations[0]; // Résultat de l'agrégation
+                } else if (selectedColumns.length > 0) {
+                    selectedColumn = selectedColumns[0]; // Première colonne sélectionnée
+                }
+
+                let sqlQuery = `SELECT ${selectedColumn} FROM ${selectedTables[0]}`;
 
                 // Ajouter les jointures
                 joins.forEach(join => {
-                    sqlQuery += ` JOIN ${join.table2} ON ${join.table1}.${join.column1} = ${join.table2}.${join.column2}`;
+                    sqlQuery += ` INNER JOIN ${join.table2} ON ${join.table1}.${join.column1} = ${join.table2}.${join.column2}`;
                 });
 
                 // Ajouter les conditions de mapping (WHERE)
@@ -542,6 +704,11 @@
                     sqlQuery += mappingConditions.map(condition => 
                         `${condition.column1} = ${condition.column2}`
                     ).join(" AND ");
+                }
+
+                // Ajouter le GROUP BY si nécessaire
+                if (groupByColumns.length > 0) {
+                    sqlQuery += " GROUP BY " + groupByColumns.join(", ");
                 }
 
                 generatedSQL.textContent = sqlQuery + ";";

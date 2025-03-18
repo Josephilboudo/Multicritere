@@ -1,0 +1,216 @@
+{%load static%}<!DOCTYPE html>
+<html lang="en">
+
+{%include 'head.html'%}
+<body>
+  <div class="container-scroller">
+    {%include 'nav.html'%}
+    <!-- partial -->
+    <div class="container-fluid page-body-wrapper">
+      <!-- partial:partials/_settings-panel.html -->
+      <!-- partial -->
+      <!-- partial:partials/_sidebar.html -->
+      {%include 'sidebar.html'%}
+      <!-- partial -->
+      <div class="main-panel">
+        <div class="content-wrapper">
+          <div class="row">
+            <div class="col-md-12 grid-margin">
+              <div class="row">
+                <div class="col-12 col-xl-8 mb-4 mb-xl-0">
+                  <h3 class="font-weight-bold">Objectif</h3>
+                  <h6 class="font-weight-normal mb-0">All systems are running smoothly! You have <span class="text-primary">3 unread alerts!</span></h6>
+                </div>
+                <div class="col-12 col-xl-4">
+                 <div class="justify-content-end d-flex">
+                  
+                 </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="row">
+            <div class="col-md-6 grid-margin stretch-card">
+              <div class="card tale-bg">
+                <div class="card-people mt-auto">
+                  <img src="{% static 'images/dashboard/people.svg' %}" alt="people">
+                  <div class="weather-info">
+                    <div class="d-flex">
+                      <div>
+                        <h2 class="mb-0 font-weight-normal"><i class="icon-sun mr-2"></i>31<sup>C</sup></h2>
+                      </div>
+                      <div class="ml-2">
+                        <h4 class="location font-weight-normal">Bangalore</h4>
+                        <h6 class="font-weight-normal">India</h6>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="col-md-6 grid-margin transparent">
+              <div class="row">
+                <div class="col-md-6 mb-4 stretch-card transparent">
+                  <div class="card card-tale">
+                    <div class="card-body">
+                      <p class="mb-4">Total Elements</p>
+                      <p class="fs-30 mb-2">{{ total_elements }}</p>
+                    </div>
+                  </div>
+                </div>
+                <div class="col-md-6 mb-4 stretch-card transparent">
+                  <div class="card card-dark-blue">
+                    <div class="card-body">
+                      <p class="mb-4">Total Ressources</p>
+                      <p class="fs-30 mb-2">{{ total_ressources }}</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div class="row">
+                <div class="col-md-6 mb-4 mb-lg-0 stretch-card transparent">
+                  <div class="card card-light-blue">
+                    <div class="card-body">
+                      <p class="mb-4">Total Criteres</p>
+                      <p class="fs-30 mb-2">{{ total_criteres }}</p>
+                    </div>
+                  </div>
+                </div>
+                <div class="col-md-6 stretch-card transparent">
+                  <div class="card card-light-danger">
+                    <div class="card-body">
+                      <p class="mb-4">Total Contraintes</p>
+                      <p class="fs-30 mb-2">{{ total_contraintes }}</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="row">
+    <div class="col-md-12 grid-margin stretch-card">
+        <div class="card">
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-12">
+                        <!-- Bouton pour ouvrir la modal d'ajout -->
+  <h2>Liste des objectifs</h2>
+  <div class="d-flex justify-content-between mb-3">
+    <!-- Bouton gauche -->
+    <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#elementModal" onclick="resetForm()">
+        <i class="fas fa-plus"></i>
+    </button>
+
+    <!-- Bouton droite (vert) -->
+    <button type="button" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#selectTableModal" onclick="loadTables()">
+        <i class="fas fa-database"></i>
+    </button>
+</div>
+
+  <div id="element-list-container">
+      <table class="table table-striped">
+          <thead>
+              <tr>
+                  <th>Code</th>
+                  <th>Description</th>
+                  <th>Actions</th>
+              </tr>
+          </thead>
+          <tbody>
+              {% for objectif in objectifs %}
+              <tr>
+                  <td>{{ objectif.Nom }}</td>
+                  <td>{{ objectif.description }}</td>
+                  <td>{{ objectif.Type}}</td>
+                  <td>{{ objectif.idCouplageCritere}}</td>
+                  <td></td>
+                  <td>
+                      <button class="btn btn-danger btn-sm" onclick="deleteObjectif('{{ objectif.idCouplageCritere }}')">
+                          <i class="fas fa-trash"></i>
+                      </button>
+                  </td>
+              </tr>
+              {% empty %}
+              <tr>
+                  <td colspan="3" class="text-center">Aucun élément disponible</td>
+              </tr>
+              {% endfor %}
+          </tbody>
+      </table>
+  </div>
+</div>
+
+<!-- Modal pour CRUD -->
+<div class="modal fade" id="elementModal" tabindex="-1" aria-labelledby="elementModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+      <div class="modal-content">
+          <div class="modal-header">
+              <h5 class="modal-title" id="elementModalLabel">Ajouter/Modifier un élément</h5>
+              <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <form id="elementForm">
+              {% csrf_token %}
+              <div class="modal-body">
+                  <input type="hidden" name="action" id="formAction" value="add">
+                  
+                  <div class="mb-3">
+                      <label for="codeElement" class="form-label">Code de l'élément</label>
+                      <input type="text" class="form-control" id="codeElement" name="codeElement" required>
+                  </div>
+                  
+                  <div class="mb-3">
+                      <label for="description" class="form-label">Description</label>
+                      <input type="text" class="form-control" id="description" name="description" required>
+                  </div>
+              </div>
+              <div class="modal-footer">
+                  <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+                  <button type="button" id="saveButton" class="btn btn-primary">Enregistrer</button>
+              </div>
+          </form>
+      </div>
+  </div>
+</div>
+
+<!-- Modal de confirmation de suppression -->
+<div class="modal fade" id="deleteModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog">
+      <div class="modal-content">
+          <div class="modal-header">
+              <h5 class="modal-title">Confirmer la suppression</h5>
+              <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body">
+              Êtes-vous sûr de vouloir supprimer cet élément ?
+          </div>
+          <div class="modal-footer">
+              <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+              <button type="button" id="confirmDeleteButton" class="btn btn-danger">Supprimer</button>
+          </div>
+      </div>
+  </div>
+</div>
+
+<!-- Toast pour les erreurs -->
+<div id="errorToast" class="toast" role="alert" aria-live="assertive" aria-atomic="true">
+  <div class="toast-header bg-danger text-white">
+      <strong class="me-auto">Erreur</strong>
+      <button type="button" class="btn-close btn-close-white" data-bs-dismiss="toast" aria-label="Close"></button>
+  </div>
+  <div class="toast-body">
+      <!-- Le message d'erreur sera inséré ici -->
+  </div>
+</div>
+<!-- Toast pour les succès -->
+<div id="successToast" class="toast" role="alert" aria-live="assertive" aria-atomic="true">
+  <div class="toast-header bg-success text-white">
+      <strong class="me-auto">Succès</strong>
+      <button type="button" class="btn-close btn-close-white" data-bs-dismiss="toast" aria-label="Close"></button>
+  </div>
+  <div class="toast-body">
+      <!-- Le message de succès sera inséré ici -->
+  </div>
+</div>
+</body>
+</html>
