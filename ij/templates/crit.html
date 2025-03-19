@@ -299,13 +299,13 @@
             confirmMappingButton.addEventListener("click", () => {
                 const column1 = mappingColumn1.value;
                 const column2 = mappingColumn2.value;
-
-                if (column1 && column2) {
+            
+                if ((column1 && column2) || (column1 === "null" && column2) || (column1 && column2 === "null")) {
                     mappingConditions.push({ column1, column2 });
                     updateMappingList();
                     mappingModal.hide();
                 } else {
-                    alert("Veuillez sélectionner deux colonnes pour le mapping.");
+                    alert("Veuillez sélectionner au moins une colonne pour le mapping.");
                 }
             });
 
@@ -568,13 +568,20 @@
             function populateMappingColumns() {
                 mappingColumn1.innerHTML = "";
                 mappingColumn2.innerHTML = "";
-
+            
                 const emptyOption = document.createElement("option");
                 emptyOption.value = "";
                 emptyOption.textContent = "Sélectionnez une colonne";
                 mappingColumn1.appendChild(emptyOption.cloneNode(true));
                 mappingColumn2.appendChild(emptyOption.cloneNode(true));
-
+                
+                // Ajouter l'option "null"
+                const nullOption = document.createElement("option");
+                nullOption.value = "null";
+                nullOption.textContent = "null";
+                mappingColumn1.appendChild(nullOption.cloneNode(true));
+                mappingColumn2.appendChild(nullOption.cloneNode(true));
+            
                 selectedTables.forEach(table => {
                     if (tableColumns[table]) {
                         tableColumns[table].forEach(column => {
@@ -648,14 +655,24 @@
                 if (!mappingList) {
                     return;
                 }
-
+            
                 mappingList.innerHTML = "";
-
+            
                 mappingConditions.forEach((condition, index) => {
                     const div = document.createElement("div");
                     div.className = "d-flex align-items-center mb-2";
-                    div.innerHTML = `<span>${condition.column1} = ${condition.column2}</span>`;
-
+                    
+                    let displayText;
+                    if (condition.column1 === "null") {
+                        displayText = `1 AND ${condition.column2} = 'y1'`;
+                    } else if (condition.column2 === "null") {
+                        displayText = `${condition.column1} = 'x1' AND 1`;
+                    } else {
+                        displayText = `${condition.column1} = 'x1' AND ${condition.column2} = 'y1'`;
+                    }
+                    
+                    div.innerHTML = `<span>${displayText}</span>`;
+            
                     const removeButton = document.createElement("button");
                     removeButton.textContent = "X";
                     removeButton.className = "btn btn-danger btn-sm ms-2";
@@ -663,57 +680,122 @@
                         mappingConditions.splice(index, 1);
                         updateMappingList();
                     });
-
+            
                     div.appendChild(removeButton);
                     mappingList.appendChild(div);
                 });
             }
 
             // Générer la requête SQL
-            generateQueryButton.addEventListener("click", () => {
-                if (selectedTables.length === 0) {
-                    alert("Veuillez sélectionner au moins une table.");
-                    return;
-                }
+            // Générer la requête SQL
+generateQueryButton.addEventListener("click", () => {
+    if (selectedTables.length === 0) {
+        alert("Veuillez sélectionner au moins une table.");
+        return;
+    }
 
-                if (selectedColumns.length === 0 && arithmeticOperations.length === 0 && aggregationOperations.length === 0) {
-                    alert("Veuillez sélectionner au moins une colonne ou ajouter une opération arithmétique ou une agrégation.");
-                    return;
-                }
+    if (selectedColumns.length === 0 && arithmeticOperations.length === 0 && aggregationOperations.length === 0) {
+        alert("Veuillez sélectionner au moins une colonne ou ajouter une opération arithmétique ou une agrégation.");
+        return;
+    }
 
-                // Définir la colonne à retourner
-                let selectedColumn = "";
-                if (arithmeticOperations.length > 0) {
-                    selectedColumn = arithmeticOperations[0]; // Résultat de l'opération arithmétique
-                } else if (aggregationOperations.length > 0) {
-                    selectedColumn = aggregationOperations[0]; // Résultat de l'agrégation
-                } else if (selectedColumns.length > 0) {
-                    selectedColumn = selectedColumns[0]; // Première colonne sélectionnée
-                }
+    // Définir la colonne à retourner
+    let selectedColumn = "";
+    if (arithmeticOperations.length > 0) {
+        selectedColumn = arithmeticOperations[0]; // Résultat de l'opération arithmétique
+    } else if (aggregationOperations.length > 0) {
+        selectedColumn = aggregationOperations[0]; // Résultat de l'agrégation
+    } else if (selectedColumns.length > 0) {
+        selectedColumn = selectedColumns[0]; // Première colonne sélectionnée
+    }
 
-                let sqlQuery = `SELECT ${selectedColumn} FROM ${selectedTables[0]}`;
+    let sqlQuery = `SELECT ${selectedColumn} FROM ${selectedTables[0]}`;
 
-                // Ajouter les jointures
-                joins.forEach(join => {
-                    sqlQuery += ` INNER JOIN ${join.table2} ON ${join.table1}.${join.column1} = ${join.table2}.${join.column2}`;
-                });
-
-                // Ajouter les conditions de mapping (WHERE)
-                if (mappingConditions.length > 0) {
-                    sqlQuery += " WHERE ";
-                    sqlQuery += mappingConditions.map(condition => 
-                        `${condition.column1} = ${condition.column2}`
-                    ).join(" AND ");
-                }
-
-                // Ajouter le GROUP BY si nécessaire
-                if (groupByColumns.length > 0) {
-                    sqlQuery += " GROUP BY " + groupByColumns.join(", ");
-                }
-
-                generatedSQL.textContent = sqlQuery + ";";
+    // Amélioration de la gestion des jointures
+    if (joins.length > 0) {
+        // Créer un graphe de tables connectées
+        const tableGraph = {};
+        selectedTables.forEach(table => {
+            tableGraph[table] = [];
+        });
+        
+        // Remplir le graphe avec les jointures
+        joins.forEach(join => {
+            if (!tableGraph[join.table1]) tableGraph[join.table1] = [];
+            if (!tableGraph[join.table2]) tableGraph[join.table2] = [];
+            
+            tableGraph[join.table1].push({
+                table: join.table2,
+                condition: `${join.table1}.${join.column1} = ${join.table2}.${join.column2}`
             });
+            
+            tableGraph[join.table2].push({
+                table: join.table1,
+                condition: `${join.table2}.${join.column2} = ${join.table1}.${join.column1}`
+            });
+        });
+        
+        // Utiliser un ensemble pour suivre les tables déjà jointes
+        const joinedTables = new Set([selectedTables[0]]);
+        const tablesToJoin = new Set(selectedTables.slice(1));
+        
+        // Continuer à ajouter des jointures tant qu'il reste des tables à joindre
+        while (tablesToJoin.size > 0) {
+            let foundJoin = false;
+            
+            // Pour chaque table déjà jointe
+            for (const joinedTable of joinedTables) {
+                // Chercher une connexion avec une table non jointe
+                for (const connection of tableGraph[joinedTable] || []) {
+                    if (tablesToJoin.has(connection.table)) {
+                        sqlQuery += ` INNER JOIN ${connection.table} ON ${connection.condition}`;
+                        joinedTables.add(connection.table);
+                        tablesToJoin.delete(connection.table);
+                        foundJoin = true;
+                        break;
+                    }
+                }
+                
+                if (foundJoin) break;
+            }
+            
+            // Si aucune jointure n'a été trouvée mais qu'il reste des tables à joindre
+            if (!foundJoin && tablesToJoin.size > 0) {
+                // Ajouter la première table restante avec une jointure croisée (CROSS JOIN)
+                const nextTable = Array.from(tablesToJoin)[0];
+                sqlQuery += ` CROSS JOIN ${nextTable}`;
+                joinedTables.add(nextTable);
+                tablesToJoin.delete(nextTable);
+                
+                console.warn(`Attention: Utilisation d'une jointure croisée pour ${nextTable} car aucune condition de jointure n'a été trouvée.`);
+            }
+        }
+    }
 
+    // Dans la section "Ajouter les conditions de mapping (WHERE)" de la fonction attachée à generateQueryButton
+if (mappingConditions.length > 0) {
+    sqlQuery += " WHERE ";
+    
+    let whereConditions = mappingConditions.map(condition => {
+        if (condition.column1 === "null") {
+            return `1 AND ${condition.column2} = 'y1'`;
+        } else if (condition.column2 === "null") {
+            return `${condition.column1} = 'x1' AND 1`;
+        } else {
+            return `${condition.column1} = 'x1' AND ${condition.column2} = 'y1'`;
+        }
+    });
+    
+    sqlQuery += whereConditions.join(" AND ");
+}
+
+    // Ajouter le GROUP BY si nécessaire
+    if (groupByColumns.length > 0) {
+        sqlQuery += " GROUP BY " + groupByColumns.join(", ");
+    }
+
+    generatedSQL.textContent = sqlQuery + ";";
+});
             // Exécuter la requête
             executeQueryButton.addEventListener("click", () => {
                 const query = generatedSQL.textContent;

@@ -19,7 +19,7 @@
             <div class="col-md-12 grid-margin">
               <div class="row">
                 <div class="col-12 col-xl-8 mb-4 mb-xl-0">
-                  <h3 class="font-weight-bold">Objectif</h3>
+                  <h3 class="font-weight-bold">Contraintes</h3>
                   <h6 class="font-weight-normal mb-0">All systems are running smoothly! You have <span class="text-primary">3 unread alerts!</span></h6>
                 </div>
                 <div class="col-12 col-xl-4">
@@ -94,31 +94,33 @@
                   <div class="row">
                     <div class="col-12">
                       <h2>Liste des objectifs</h2>
-                      
-                      <!-- Bouton pour ouvrir la modal d'ajout -->
-                      <button type="button" class="btn btn-primary btn-sm mb-3" data-bs-toggle="modal" data-bs-target="#elementModal" onclick="resetForm()">
-                        <i class="fas fa-plus"></i> Ajouter un objectif
-                      </button>
-          
+                      <div class="d-flex justify-content-between mb-3">
+                        <!-- Bouton pour ouvrir la modal d'ajout -->
+                        <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#elementModal" onclick="resetForm()">
+                          <i class="fas fa-plus"></i> Ajouter un objectif
+                        </button>
+
                       <!-- Tableau des objectifs -->
                       <div id="element-list-container">
                         <table class="table table-striped">
                           <thead>
                             <tr>
                               <th>Description</th>
-                              <th>Type</th>
-                              <th>Critère de couplage</th>
+                              <th>Premiere valeur</th>
+                              <th>Operande</th>
+                              <th>Seuil</th>
                               <th>Actions</th>
                             </tr>
                           </thead>
                           <tbody>
-                            {% for objectif in objectifs %}
+                            {% for contrainte in contraintes %}
                             <tr>
-                              <td>{{ objectif.description }}</td>
-                              <td>{{ objectif.type }}</td>
-                              <td>{{ objectif.idCritere }}</td>
+                              <td>{{ contrainte.description }}</td>
+                              <td>{{ contrainte.val1 }}</td>
+                              <td>{{contrainte.operande}}</td>
+                              <td>{{ contrainte.seuil }}</td>
                               <td>
-                                <button class="btn btn-danger btn-sm" onclick="deleteObjectif('{{ objectif.idObjectif }}')">
+                                <button class="btn btn-danger btn-sm" onclick="deleteObjectif('{{ contrainte.idContrainte}}')">
                                   <i class="fas fa-trash"></i> Supprimer
                                 </button>
                               </td>
@@ -138,19 +140,6 @@
             </div>
           </div>
         </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- Toast container -->
-  <div class="position-fixed bottom-0 end-0 p-3" style="z-index: 11">
-    <div id="toastNotification" class="toast" role="alert" aria-live="assertive" aria-atomic="true">
-      <div class="toast-header">
-        <strong class="me-auto" id="toastTitle">Notification</strong>
-        <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Close"></button>
-      </div>
-      <div class="toast-body" id="toastMessage">
-        Message de notification
       </div>
     </div>
   </div>
@@ -215,156 +204,64 @@
   </div>
 
   <!-- Scripts JavaScript -->
-<script>
-  // Fonction pour afficher les toasts
-function showToast(title, message, type) {
-  const toastEl = document.getElementById('toastNotification');
-  const toastTitle = document.getElementById('toastTitle');
-  const toastMessage = document.getElementById('toastMessage');
-  
-  // Définir le contenu
-  toastTitle.textContent = title;
-  toastMessage.textContent = message;
-  
-  // Définir la classe selon le type (succès, erreur, etc.)
-  toastEl.className = 'toast';
-  if (type === 'success') {
-    toastEl.classList.add('bg-success', 'text-white');
-  } else if (type === 'error') {
-    toastEl.classList.add('bg-danger', 'text-white');
-  } else if (type === 'warning') {
-    toastEl.classList.add('bg-warning');
-  } else {
-    toastEl.classList.add('bg-info', 'text-white');
-  }
-  
-  // Créer et afficher le toast de manière compatible avec toutes les versions
-  try {
-    // Essayer méthode pour Bootstrap 5+
-    const bsToast = new bootstrap.Toast(toastEl);
-    bsToast.show();
-  } catch (e) {
-    // Fallback pour jQuery avec Bootstrap 4
-    try {
-      $(toastEl).toast('show');
-    } catch (e2) {
-      console.error('Impossible d\'afficher le toast:', e2);
+  <script>
+    function resetForm() {
+      document.getElementById('elementForm').reset();
+      document.getElementById('formAction').value = 'add';
     }
-  }
-}
 
-function resetForm() {
-  document.getElementById('elementForm').reset();
-}
-
-function saveObjectif() {
-    const formData = {
-        description: document.getElementById('description').value,
-        type: document.getElementById('type').value,
-        idCouplageCritere: document.getElementById('idCouplageCritere').value,
-    };
-
-    fetch('/add-objectif/', {
-        method: 'POST',
-        body: JSON.stringify(formData),
-        headers: {
-            'Content-Type': 'application/json',
-            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
-        },
-    })
-    .then(response => {
-        if (!response.ok) {
-            throw new Error(`HTTP error! Status: ${response.status}`);
-        }
-        return response.json();
-    })
-    .then(data => {
-        if (data.status === 'success') {
-            // Remplacer l'alerte par un toast
-            showToast('Succès', 'Objectif ajouté avec succès !', 'success');
-            
-            // Fermer la modal de manière compatible avec toutes les versions
-            try {
-                // Essayer d'abord avec JavaScript pur pour Bootstrap 5
-                const modalElement = document.getElementById('elementModal');
-                // Méthode manuelle sans getInstance ou getOrCreateInstance
-                const modalBackdrop = document.querySelector('.modal-backdrop');
-                if (modalBackdrop) {
-                    modalBackdrop.remove();
-                }
-                modalElement.classList.remove('show');
-                modalElement.style.display = 'none';
-                document.body.classList.remove('modal-open');
-            } catch (e) {
-                // Fallback pour jQuery avec Bootstrap 4 ou antérieur
-                try {
-                    $('#elementModal').modal('hide');
-                } catch (e2) {
-                    console.error('Impossible de fermer la modal:', e2);
-                }
+    function saveObjectif() {
+        const formData = {
+            description: document.getElementById('description').value,
+            type: document.getElementById('type').value,
+            idCouplageCritere: document.getElementById('idCouplageCritere').value,
+        };
+    
+        fetch('/add-objectif/', {
+            method: 'POST',
+            body: JSON.stringify(formData),
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+            },
+        })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`HTTP error! Status: ${response.status}`);
             }
-            
-            // Recharger après un délai
-            setTimeout(() => {
+            return response.json();
+        })
+        .then(data => {
+            if (data.status === 'success') {
+                alert('Objectif ajouté avec succès !');
                 location.reload();
-            }, 1500);
-        } else {
-            // Afficher un toast d'erreur
-            showToast('Erreur', 'Erreur : ' + data.message, 'error');
-        }
-    })
-    .catch(error => {
-        console.error('Erreur :', error);
-        // Afficher un toast d'erreur
-        showToast('Erreur', 'Une erreur est survenue: ' + error.message, 'error');
-    });
-}
-
-function deleteObjectif(id) {
-  // Approche avec confirmation classique, plus compatible
-  if (confirm('Êtes-vous sûr de vouloir supprimer cet objectif ?')) {
-    fetch(`/delete-objectif/${id}/`, {
-      method: 'DELETE',
-      headers: {
-        'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+            } else {
+                alert('Erreur : ' + data.message);
+            }
+        })
+        .catch(error => {
+            console.error('Erreur :', error);
+            alert('Une erreur est survenue: ' + error.message);
+        });
+    }
+    function deleteObjectif(id) {
+      if (confirm('Êtes-vous sûr de vouloir supprimer cet objectif ?')) {
+        fetch(`/delete-objectif/${id}/`, {
+          method: 'DELETE',
+          headers: {
+            'X-CSRFToken': '{{ csrf_token }}'
+          }
+        })
+        .then(response => response.json())
+        .then(data => {
+          if (data.status === 'success') {
+            location.reload(); // Recharger la page pour voir les changements
+          }
+        });
       }
-    })
-    .then(response => response.json())
-    .then(data => {
-      if (data.status === 'success') {
-        // Afficher un toast de succès
-        showToast('Succès', 'Objectif supprimé avec succès !', 'success');
-        
-        // Recharger la page après un délai
-        setTimeout(() => {
-            location.reload();
-        }, 1500);
-      } else {
-        // Afficher un toast d'erreur
-        showToast('Erreur', 'Erreur lors de la suppression: ' + (data.message || 'Erreur inconnue'), 'error');
-      }
-    })
-    .catch(error => {
-      console.error('Erreur :', error);
-      // Afficher un toast d'erreur
-      showToast('Erreur', 'Une erreur est survenue: ' + error.message, 'error');
-    });
-  }
-}
+    }
 
-document.addEventListener('DOMContentLoaded', function() {
-  // Initialiser les toasts si jQuery est utilisé (Bootstrap 4)
-  try {
-    $('.toast').toast({
-      autohide: true,
-      delay: 3000
-    });
-  } catch (e) {
-    console.log('Initialisation des toasts avec jQuery non disponible');
-  }
-  
-  document.getElementById('saveButton').addEventListener('click', saveObjectif);
-});
-</script>
+    document.getElementById('saveButton').addEventListener('click', saveObjectif);
+  </script>
 </body>
 </html>

@@ -45,6 +45,11 @@ def critere(request):
     criteres = Critere.objects.all()
     return render(request, 'critere.html', {'criteres':criteres})
 
+def contrainte(request):
+    contraintes = Contrainte.objects.all()
+    return render(request, 'contrainte.html', {'contraintes': contraintes})
+
+
 def couplage(request):
     couplages = Couplage.objects.all()
     elements = Element.objects.all()
@@ -733,7 +738,7 @@ def get_critere_json(request):
             'message': str(e)
         })
         
-def delete_critere(request):
+
     if request.method == 'POST':
         critere_id = request.POST.get('idCritere')
         try:
@@ -856,7 +861,16 @@ def delete_objectif(request, id):
         except Objectif.DoesNotExist:
             return JsonResponse({'status': 'error', 'message': 'Objectif not found'}, status=404)
 
-
+#critere
+@csrf_exempt
+def delete_critere(request, id):
+    if request.method == 'DELETE':
+        try:
+            critere = Critere.objects.get(pk=id)
+            critere.delete()
+            return JsonResponse({'status': 'success'})
+        except Critere.DoesNotExist:
+            return JsonResponse({'status': 'error', 'message': 'Objectif not found'}, status=404)
 
 
 

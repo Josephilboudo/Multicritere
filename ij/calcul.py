@@ -1,13 +1,14 @@
 import json
 from django.db import connections
-
+from django.http import JsonResponse
+from django.views.decorators.csrf import csrf_exempt
 from ij.models import Couplage, CouplageCritere, Critere, Element, Ressource
 
 
 def calculer_cout():
     # Récupérer tous les couplages existants
     couplages = Couplage.objects.all()
-    
+    print("appeler")
     # Récupérer tous les critères
     criteres = Critere.objects.all()
     
@@ -20,14 +21,14 @@ def calculer_cout():
             expression_sql = critere.expression
 
             # Remplacer les paramètres codeElement et codeRessource dans la requête SQL
-            sql_query = expression_sql.replace("x", f"'{couplage.element}'").replace("y", f"'{couplage.ressource}'")
-            
+            sql_query = expression_sql.replace("x1", f"'{couplage.element_id}'").replace("y1", f"'{couplage.ressource_id}'")
+            print(sql_query)
             try:
                 # Connexion à la base de données externe et exécution de la requête
                 with connections['external_db'].cursor() as cursor:
                     cursor.execute(sql_query)
                     result = cursor.fetchone()  # Supposons qu'on récupère un seul résultat
-                
+                    print(result)
                 # Stocker la valeur du critère
                 if result:
                     valeurs_criteres[critere.nom] = result[0]  # Prendre la première colonne retournée
@@ -46,6 +47,18 @@ def calculer_cout():
 
     print("Calcul des coûts terminé avec succès !")
     
+    #calculer cout critere
+    
+@csrf_exempt  # Permet de désactiver la vérification CSRF pour cette vue (à utiliser avec précaution)
+def calculer_cout_view(request):
+    if request.method == 'POST':
+        try:
+            calculer_cout()  # Appeler la fonction de calcul des coûts
+            return JsonResponse({"status": "success", "message": "Calcul des coûts terminé avec succès !"})
+        except Exception as e:
+            return JsonResponse({"status": "error", "message": str(e)}, status=500)
+    else:
+        return JsonResponse({"status": "error", "message": "Méthode non autorisée"}, status=405)
     
 def generer_couplages():
     # Récupérer tous les éléments et toutes les ressources
@@ -69,3 +82,14 @@ def generer_couplages():
                 couplages_crees += 1  # Incrémenter le compteur si un nouveau couplage est créé
 
     print(f"{couplages_crees} couplage(s) créé(s) avec succès !")
+
+@csrf_exempt  # Permet de désactiver la vérification CSRF pour cette vue (à utiliser avec précaution)
+def generer_couplages_view(request):
+    if request.method == 'POST':
+        try:
+            generer_couplages()  # Appeler la fonction de génération des couplages
+            return JsonResponse({"status": "success", "message": "Génération des couplages terminée avec succès !"})
+        except Exception as e:
+            return JsonResponse({"status": "error", "message": str(e)}, status=500)
+    else:
+        return JsonResponse({"status": "error", "message": "Méthode non autorisée"}, status=405)

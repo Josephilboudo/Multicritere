@@ -31,7 +31,7 @@ class Critere(models.Model):
     idCritere = models.AutoField(primary_key=True)
     nom = models.CharField(max_length=50)
     description = models.CharField(max_length=255)
-    expression = models.TextField()  # Expression mathématique ou logique
+    expression = models.TextField()  # Expression sql
     
     def __str__(self):
         return self.nom
