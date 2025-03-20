@@ -104,6 +104,8 @@
                       <button type="button" class="btn btn-primary btn-sm mb-3" data-bs-toggle="modal" data-bs-target="#contrainteModal" >
                         <i class="fas fa-plus"></i>
                       </button>
+                      <button id="btn-verifier" class="btn btn-primary">Vérifier</button>
+                      <p id="message"></p>
           
                       <!-- Tableau des objectifs -->
                       <div id="element-list-container">
@@ -444,6 +446,21 @@ document.getElementById("contrainteForm").addEventListener("submit", function(ev
     event.preventDefault();
     showToast('Erreur', 'Veuillez sélectionner un type de seuil (Critère ou Valeur)', 'error');
   }
+});
+document.getElementById("btn-verifier").addEventListener("click", function() {
+  fetch("{% url 'verifier_contraintes' %}", {
+      method: "POST",
+      headers: {
+          "X-CSRFToken": "{{ csrf_token }}",
+          "Content-Type": "application/json"
+      },
+      body: JSON.stringify({})
+  })
+  .then(response => response.json())
+  .then(data => {
+      document.getElementById("message").innerText = data.message;
+  })
+  .catch(error => console.error("Erreur :", error));
 });
 
 document.addEventListener('DOMContentLoaded', function() {

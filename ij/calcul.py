@@ -1,8 +1,9 @@
+import datetime
 import json
 from django.db import connections
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
-from ij.models import Couplage, CouplageCritere, Critere, Element, Ressource
+from ij.models import Contrainte, Couplage, CouplageCritere, Critere, Element, Ressource
 
 
 def calculer_cout():
@@ -93,3 +94,89 @@ def generer_couplages_view(request):
             return JsonResponse({"status": "error", "message": str(e)}, status=500)
     else:
         return JsonResponse({"status": "error", "message": "Méthode non autorisée"}, status=405)
+
+
+
+#verification des contraintes existantes
+
+def filtrer_couplage_criteres():
+    try:
+        contraintes = Contrainte.objects.all()
+        couplages = CouplageCritere.objects.all()
+        # Liste des IDs à supprimer
+        ids_a_supprimer = []
+        for couplage in couplages:
+            valeurs = couplage.valeur  # Récupèrer le champ JSON comme dictionnaire
+            # Vérifier si c'est une chaîne JSON et la convertir en dict
+            if isinstance(valeurs, str):
+                try:
+                    valeurs = json.loads(valeurs.replace("'", "\""))  # Convertir en dict (corriger les guillemets si besoin)
+                except json.JSONDecodeError:
+                    continue
+
+            for contrainte in contraintes:
+                critere_cible = contrainte.critere_cible
+                seuil = contrainte.seuil
+                type_contrainte = contrainte.type
+                valeur_critere_cible = valeurs[critere_cible]  # Valeur à tester
+
+                if seuil in valeurs:
+                    seuil = valeurs[seuil]
+
+                # Appliquer la contrainte
+                if not respecter_contrainte(valeur_critere_cible, seuil, type_contrainte):
+                    ids_a_supprimer.append(couplage.idValeur)
+                    break
+
+        # Supprimer les éléments qui ne respectent pas les contraintes
+        CouplageCritere.objects.filter(idValeur__in=ids_a_supprimer).delete()
+
+        return {"status": "success", "message": f"{len(ids_a_supprimer)} éléments supprimés"}
+
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
+#Fonction pour la verification du respect des contraintes
+def respecter_contrainte(valeur, seuil, type_contrainte):
+
+    try:
+        # Vérifier si c'est une date (format YYYY-MM-DD)
+        if isinstance(valeur, str) and isinstance(seuil, str):
+            try:
+                valeur = datetime.strptime(valeur, "%Y-%m-%d")
+                seuil = datetime.strptime(seuil, "%Y-%m-%d")
+            except ValueError:
+                pass  # Si ce n'est pas une date, on continue avec les nombres
+
+        # Conversion en float si possible
+        try:
+            valeur = float(valeur)
+            seuil = float(seuil)
+        except ValueError:
+            pass  # Laisser la valeur telle quelle si ce n'est pas un nombre
+
+
+        if type_contrainte == '>':
+            return valeur > seuil
+        elif type_contrainte == '<':
+            return valeur < seuil
+        elif type_contrainte == '=':
+            return valeur == seuil
+        elif type_contrainte == '>=':
+            return valeur >= seuil
+        elif type_contrainte == '<=':
+            return valeur <= seuil
+        else:
+            return False  # Type inconnu, la contrainte n'est pas respectée
+    except ValueError:
+        return False  # Si conversion impossible, contrainte non respectée
+
+@csrf_exempt  # Désactive la vérification CSRF pour les tests (à sécuriser ensuite)
+def verifier_contraintes(request):
+    if request.method == "POST":
+        result = filtrer_couplage_criteres()  # Appel de la fonction
+        return JsonResponse(result)  # Retourne le résultat au frontend
+    return JsonResponse({"status": "error", "message": "Requête invalide"}, status=400)
+
+
+
+
