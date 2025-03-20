@@ -1,4 +1,5 @@
-import datetime
+from datetime import datetime
+from decimal import Decimal
 import json
 from django.db import connections
 from django.http import JsonResponse
@@ -30,11 +31,20 @@ def calculer_cout():
                     cursor.execute(sql_query)
                     result = cursor.fetchone()  # Supposons qu'on récupère un seul résultat
                     print(result)
-                # Stocker la valeur du critère
-                if result:
-                    valeurs_criteres[critere.nom] = result[0]  # Prendre la première colonne retournée
+                    
+                if result and result[0] is not None:
+                    try:
+                        # Si c'est un Decimal
+                        valeurs_criteres[critere.nom] = float(result[0])
+                    except (TypeError, ValueError):
+                        try:
+                            # Si c'est un datetime
+                            valeurs_criteres[critere.nom] = result[0].isoformat()
+                        except (AttributeError, TypeError):
+                        # Autre type
+                            valeurs_criteres[critere.nom] = result[0]
                 else:
-                    valeurs_criteres[critere.nom] = None  # Si aucun résultat, mettre None
+                    valeurs_criteres[critere.nom] = None
 
             except Exception as e:
                 print(f"Erreur lors de l'exécution de la requête SQL pour {critere.nom} : {e}")
@@ -136,25 +146,44 @@ def filtrer_couplage_criteres():
     except Exception as e:
         return {"status": "error", "message": str(e)}
 #Fonction pour la verification du respect des contraintes
-def respecter_contrainte(valeur, seuil, type_contrainte):
 
+from datetime import datetime
+
+def respecter_contrainte(valeur, seuil, type_contrainte):
     try:
         # Vérifier si c'est une date (format YYYY-MM-DD)
         if isinstance(valeur, str) and isinstance(seuil, str):
             try:
                 valeur = datetime.strptime(valeur, "%Y-%m-%d")
                 seuil = datetime.strptime(seuil, "%Y-%m-%d")
+                
+                # Si ce sont des dates, comparer directement sans conversion en float
+                if type_contrainte == '>':
+                    return valeur > seuil
+                elif type_contrainte == '<':
+                    return valeur < seuil
+                elif type_contrainte == '=':
+                    return valeur == seuil
+                elif type_contrainte == '>=':
+                    return valeur >= seuil
+                elif type_contrainte == '<=':
+                    return valeur <= seuil
+                else:
+                    return False
             except ValueError:
-                pass  # Si ce n'est pas une date, on continue avec les nombres
+                # Ce n'est pas une date, on continue avec les nombres
+                pass
 
-        # Conversion en float si possible
+        # Conversion en float pour les nombres
         try:
-            valeur = float(valeur)
-            seuil = float(seuil)
-        except ValueError:
+            # Assurez-vous de ne pas essayer de convertir un datetime en float
+            if not isinstance(valeur, datetime) and not isinstance(seuil, datetime):
+                valeur = float(valeur)
+                seuil = float(seuil)
+        except (ValueError, TypeError):
             pass  # Laisser la valeur telle quelle si ce n'est pas un nombre
 
-
+        # Comparaison finale
         if type_contrainte == '>':
             return valeur > seuil
         elif type_contrainte == '<':
@@ -167,8 +196,9 @@ def respecter_contrainte(valeur, seuil, type_contrainte):
             return valeur <= seuil
         else:
             return False  # Type inconnu, la contrainte n'est pas respectée
-    except ValueError:
-        return False  # Si conversion impossible, contrainte non respectée
+    except Exception as e:
+        print(f"Erreur dans respecter_contrainte: {e}")
+        return False  # Si une erreur se produit, contrainte non respectée
 
 @csrf_exempt  # Désactive la vérification CSRF pour les tests (à sécuriser ensuite)
 def verifier_contraintes(request):
