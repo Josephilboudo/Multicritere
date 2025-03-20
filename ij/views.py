@@ -880,7 +880,7 @@ def delete_critere(request, id):
 def delete_contrainte(request, id):
     if request.method == 'DELETE':
         try:
-            contrainte = Contrainte.objects.get(pk=id)
+            contrainte = get_object_or_404(Contrainte, idContrainte=id)
             contrainte.delete()
             return JsonResponse({'status': 'success'})
         except Critere.DoesNotExist:
