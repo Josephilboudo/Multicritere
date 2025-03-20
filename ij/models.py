@@ -42,14 +42,16 @@ class CouplageCritere(models.Model):
     couplage = models.ForeignKey(Couplage, on_delete=models.CASCADE)
     valeur= models.JSONField()
     
+
 class Contrainte(models.Model):
     idContrainte = models.AutoField(primary_key=True)
-    nom = models.CharField(max_length=50)
-    description = models.TextField()
-    idCriterefk = models.ForeignKey(Critere, on_delete= models.CASCADE)
-    
+    description = models.CharField(max_length=255)
+    critere_cible = models.CharField(max_length=50)  # Nom du critère ciblé
+    type = models.CharField(max_length=10)
+    seuil = models.CharField(max_length=255)  # Peut être un critère ou une valeur
+
     def __str__(self):
-        return self.nom
+        return f"{self.critere_cible} {self.type} {self.seuil}"
     
 class Objectif(models.Model):
     idObjectif = models.AutoField(primary_key=True)

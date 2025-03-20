@@ -3,10 +3,15 @@
 <html lang="en">
 
 <head>
+  <!-- Inclure Bootstrap CSS -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
   {% include 'head.html' %}
+
 </head>
 
 <body>
+  <input type="hidden" name="csrfmiddlewaretoken" value="{{ csrf_token }}">
+
   <div class="container-scroller">
     {% include 'nav.html' %}
     <!-- partial -->
@@ -19,7 +24,7 @@
             <div class="col-md-12 grid-margin">
               <div class="row">
                 <div class="col-12 col-xl-8 mb-4 mb-xl-0">
-                  <h3 class="font-weight-bold">Contraintes</h3>
+                  <h3 class="font-weight-bold">Contrainte</h3>
                   <h6 class="font-weight-normal mb-0">All systems are running smoothly! You have <span class="text-primary">3 unread alerts!</span></h6>
                 </div>
                 <div class="col-12 col-xl-4">
@@ -93,21 +98,21 @@
                 <div class="card-body">
                   <div class="row">
                     <div class="col-12">
-                      <h2>Liste des objectifs</h2>
-                      <div class="d-flex justify-content-between mb-3">
-                        <!-- Bouton pour ouvrir la modal d'ajout -->
-                        <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#elementModal" onclick="resetForm()">
-                          <i class="fas fa-plus"></i> Ajouter un objectif
-                        </button>
-
+                      <h2>Liste des contraintes</h2>
+                      
+                      <!-- Bouton pour ouvrir la modal d'ajout -->
+                      <button type="button" class="btn btn-primary btn-sm mb-3" data-bs-toggle="modal" data-bs-target="#contrainteModal" >
+                        <i class="fas fa-plus"></i>
+                      </button>
+          
                       <!-- Tableau des objectifs -->
                       <div id="element-list-container">
                         <table class="table table-striped">
                           <thead>
                             <tr>
                               <th>Description</th>
-                              <th>Premiere valeur</th>
-                              <th>Operande</th>
+                              <th>Critère</th>
+                              <th>Type</th>
                               <th>Seuil</th>
                               <th>Actions</th>
                             </tr>
@@ -116,18 +121,18 @@
                             {% for contrainte in contraintes %}
                             <tr>
                               <td>{{ contrainte.description }}</td>
-                              <td>{{ contrainte.val1 }}</td>
-                              <td>{{contrainte.operande}}</td>
-                              <td>{{ contrainte.seuil }}</td>
+                              <td>{{ contrainte.critere_cible }}</td>
+                              <td>{{ contrainte.type }}</td>
+                              <td>{{contrainte.seuil}}</td>
                               <td>
-                                <button class="btn btn-danger btn-sm" onclick="deleteObjectif('{{ contrainte.idContrainte}}')">
+                                <button class="btn btn-danger btn-sm" onclick="deleteObjectif('{{ contrainte.idContrainte }}')">
                                   <i class="fas fa-trash"></i> Supprimer
                                 </button>
                               </td>
                             </tr>
                             {% empty %}
                             <tr>
-                              <td colspan="5" class="text-center">Aucun objectif disponible</td>
+                              <td colspan="5" class="text-center">Aucune contrainte disponible</td>
                             </tr>
                             {% endfor %}
                           </tbody>
@@ -144,47 +149,96 @@
     </div>
   </div>
 
-  <!-- Modal pour ajouter/modifier un objectif -->
-  <div class="modal fade" id="elementModal" tabindex="-1" aria-labelledby="elementModalLabel" aria-hidden="true">
-    <div class="modal-dialog">
-      <div class="modal-content">
-        <div class="modal-header">
-          <h5 class="modal-title" id="elementModalLabel">Ajouter un objectif</h5>
-          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-        </div>
-        <form id="elementForm">
-          {% csrf_token %}
-          <div class="modal-body">
-            <div class="mb-3">
-              <label for="description" class="form-label">Description</label>
-              <input type="text" class="form-control" id="description" name="description" required>
-            </div>
-            <div class="mb-3">
-              <label for="type" class="form-label">Type</label>
-              <select class="form-control" id="type" name="type" required>
-                <option value="max">Max</option>
-                <option value="min">Min</option>
-              </select>
-            </div>
-            <div class="mb-3">
-              <label for="idCouplageCritere" class="form-label">Critère de couplage</label>
-              <select class="form-control" id="idCouplageCritere" name="idCouplageCritere" required>
-                {% for critere in criteres %}
-                <option value="{{ critere.idCritere }}">{{ critere.nom }}</option>
-                {% endfor %}
-              </select>
-            </div>
-          </div>
-          <div class="modal-footer">
-            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
-            <button type="button" id="saveButton" class="btn btn-primary">Enregistrer</button>
-          </div>
-        </form>
+  <!-- Toast container -->
+  <div class="position-fixed bottom-0 end-0 p-3" style="z-index: 11">
+    <div id="toastNotification" class="toast" role="alert" aria-live="assertive" aria-atomic="true">
+      <div class="toast-header">
+        <strong class="me-auto" id="toastTitle">Notification</strong>
+        <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Close"></button>
+      </div>
+      <div class="toast-body" id="toastMessage">
+        Message de notification
       </div>
     </div>
   </div>
 
-  <!-- Modal de confirmation de suppression -->
+  
+<!-- Modal pour ajouter une contrainte -->
+<div class="modal fade" id="contrainteModal" tabindex="-1" aria-labelledby="contrainteModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="elementModalLabel">Ajouter une contrainte</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+          <form id="contrainteForm">
+              <div class="modal-body">
+                  <input type="hidden" name="action" id="formAction" value="add">
+                  
+                  <!-- Critère cible -->
+                  <div class="mb-3">
+                      <label for="description" class="form-label">Description</label>
+                      <input type='text' name='description' class="form-control" id="description"></input>
+                  </div>
+                  <div class="mb-3">
+                    <label for="critere" class="form-label">Critère cible</label>
+                    <select id="critere" name="critere" class="form-select" required>
+                        <option value="">Sélectionner un critère</option>
+                        {% for critere in criteres%}
+                        <option value="{{ critere.nom}}">{{ critere.nom }}</option>
+                        {%endfor%}
+                    </select>
+                </div>
+
+                  <!-- Type de contrainte -->
+                  <div class="mb-3">
+                      <label for="type" class="form-label">Type</label>
+                      <select id="type" name = "type" class="form-select" required>
+                          <option value="=">Égalité</option>
+                          <option value=">">Supériorité</option>
+                          <option value="<">Infériorité</option>
+                      </select>
+                  </div>
+
+                  <!-- Choix entre "Critère" ou "Valeur" -->
+                  <div class="mb-3">
+                      <label class="form-label">Seuil basé sur</label><br>
+                      <div class="form-check form-check-inline">
+                          <input type="radio" class="form-check-input" name="seuil_type" value="critere" id="choix_critere" required>
+                          <label class="form-check-label" for="choix_critere">Critère</label>
+                      </div>
+                      <div class="form-check form-check-inline">
+                          <input type="radio" class="form-check-input" name="seuil_type" value="valeur" id="choix_valeur" required>
+                          <label class="form-check-label" for="choix_valeur">Valeur</label>
+                      </div>
+                  </div>
+
+                  <!-- Liste déroulante pour choisir un critère (masqué par défaut) -->
+                  <div id="seuil_critere_container" class="mb-3" style="display:none;">
+                      <label for="seuil_critere" class="form-label">Sélectionner un critère</label>
+                      <select id="seuil_critere" name = "seuil_critere" class="form-select">
+                          <option value="">Sélectionner un critère</option>
+                          {% for critere in criteres%}
+                          <option value="{{ critere.nom}}">{{ critere.nom }}</option>
+                          {%endfor%}
+                      </select>
+                  </div>
+
+                  <!-- Champ de saisie pour entrer une valeur (masqué par défaut) -->
+                  <div id="seuil_valeur_container" class="mb-3" style="display:none;">
+                      <label for="seuil_valeur" class="form-label">Saisir une valeur</label>
+                      <input type="text" id="seuil_valeur" name="seuil_valeur" class="form-control" placeholder="Ex: 10, 3.5, 2025-01-01" >
+                  </div>
+              </div>
+              <div class="modal-footer">
+                  <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+                  <button type="submit" id="saveContrainte" class="btn btn-primary">Enregistrer</button>
+              </div>
+          </form>
+      </div>
+  </div>
+</div>
+<!-- Modal de confirmation de suppression -->
   <div class="modal fade" id="deleteModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog">
       <div class="modal-content">
@@ -204,64 +258,205 @@
   </div>
 
   <!-- Scripts JavaScript -->
-  <script>
-    function resetForm() {
-      document.getElementById('elementForm').reset();
-      document.getElementById('formAction').value = 'add';
+<script>
+  // Fonction pour afficher les toasts
+function showToast(title, message, type) {
+  const toastEl = document.getElementById('toastNotification');
+  const toastTitle = document.getElementById('toastTitle');
+  const toastMessage = document.getElementById('toastMessage');
+  
+  // Définir le contenu
+  toastTitle.textContent = title;
+  toastMessage.textContent = message;
+  
+  // Définir la classe selon le type (succès, erreur, etc.)
+  toastEl.className = 'toast';
+  if (type === 'success') {
+    toastEl.classList.add('bg-success', 'text-white');
+  } else if (type === 'error') {
+    toastEl.classList.add('bg-danger', 'text-white');
+  } else if (type === 'warning') {
+    toastEl.classList.add('bg-warning');
+  } else {
+    toastEl.classList.add('bg-info', 'text-white');
+  }
+  
+  // Créer et afficher le toast de manière compatible avec toutes les versions
+  try {
+    // Essayer méthode pour Bootstrap 5+
+    const bsToast = new bootstrap.Toast(toastEl);
+    bsToast.show();
+  } catch (e) {
+    // Fallback pour jQuery avec Bootstrap 4
+    try {
+      $(toastEl).toast('show');
+    } catch (e2) {
+      console.error('Impossible d\'afficher le toast:', e2);
     }
+  }
+}
 
-    function saveObjectif() {
-        const formData = {
-            description: document.getElementById('description').value,
-            type: document.getElementById('type').value,
-            idCouplageCritere: document.getElementById('idCouplageCritere').value,
-        };
-    
-        fetch('/add-objectif/', {
-            method: 'POST',
-            body: JSON.stringify(formData),
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
-            },
-        })
-        .then(response => {
-            if (!response.ok) {
-                throw new Error(`HTTP error! Status: ${response.status}`);
-            }
-            return response.json();
-        })
-        .then(data => {
-            if (data.status === 'success') {
-                alert('Objectif ajouté avec succès !');
-                location.reload();
-            } else {
-                alert('Erreur : ' + data.message);
-            }
-        })
-        .catch(error => {
-            console.error('Erreur :', error);
-            alert('Une erreur est survenue: ' + error.message);
-        });
-    }
-    function deleteObjectif(id) {
-      if (confirm('Êtes-vous sûr de vouloir supprimer cet objectif ?')) {
-        fetch(`/delete-objectif/${id}/`, {
-          method: 'DELETE',
-          headers: {
-            'X-CSRFToken': '{{ csrf_token }}'
-          }
-        })
-        .then(response => response.json())
-        .then(data => {
-          if (data.status === 'success') {
-            location.reload(); // Recharger la page pour voir les changements
-          }
-        });
+function resetForm() {
+  document.getElementById('elementForm').reset();
+}
+
+document.getElementById("choix_critere").addEventListener("change", function() {
+  document.getElementById("seuil_critere_container").style.display = "block";
+  document.getElementById("seuil_valeur_container").style.display = "none";
+  document.getElementById("seuil_valeur").value = "";  // Réinitialiser la valeur saisie
+});
+
+document.getElementById("choix_valeur").addEventListener("change", function() {
+  document.getElementById("seuil_critere_container").style.display = "none";
+  document.getElementById("seuil_valeur_container").style.display = "block";
+  document.getElementById("seuil_critere").value = "";  // Réinitialiser la sélection de critère
+});
+
+document.getElementById("saveContrainte").addEventListener("click", function() {
+  let critere = document.getElementById("critere").value;
+  let type = document.getElementById("type").value;
+  let seuil = document.querySelector('input[name="seuil_type"]:checked').value === "critere"
+      ? document.getElementById("seuil_critere").value
+      : document.getElementById("seuil_valeur").value;
+
+  if (!critere || !type || !seuil) {
+      alert("Tous les champs doivent être remplis !");
+      return;
+  }
+
+  console.log("Nouvelle contrainte :", { critere, type, seuil });
+  alert("Contrainte enregistrée !");
+});
+function deleteObjectif(id) {
+  // Approche avec confirmation classique, plus compatible
+  if (confirm('Êtes-vous sûr de vouloir supprimer ce critere ?')) {
+    fetch(`/delete-contrainte/${id}/`, {
+      method: 'DELETE',
+      headers: {
+        'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
       }
-    }
+    })
+    .then(response => response.json())
+    .then(data => {
+      if (data.status === 'success') {
+        // Afficher un toast de succès
+        showToast('Succès', 'Objectif supprimé avec succès !', 'success');
+        
+        // Recharger la page après un délai
+            location.reload();
+      } else {
+        // Afficher un toast d'erreur
+        showToast('Erreur', 'Erreur lors de la suppression: ' + (data.message || 'Erreur inconnue'), 'error');
+      }
+    })
+    .catch(error => {
+      console.error('Erreur :', error);
+      // Afficher un toast d'erreur
+      showToast('Erreur', 'Une erreur est survenue: ' + error.message, 'error');
+    });
+  }
+}
+document.getElementById("contrainteForm").addEventListener("submit", function(event) {
+  event.preventDefault();
+  
+  // Récupérer les valeurs du formulaire
+  let description = document.getElementById("description").value;
+  let critere = document.getElementById("critere").value;
+  let type = document.getElementById("type").value;
+  let seuilType = document.querySelector('input[name="seuil_type"]:checked').value;
+  let seuil = seuilType === "critere"
+      ? document.getElementById("seuil_critere").value
+      : document.getElementById("seuil_valeur").value;
 
-    document.getElementById('saveButton').addEventListener('click', saveObjectif);
-  </script>
+  // Vérifier que tous les champs sont remplis
+  if (!critere || !type || !seuil) {
+      showToast('Erreur', 'Tous les champs doivent être remplis !', 'error');
+      return;
+  }
+
+  // Créer un objet FormData pour l'envoi
+  const formData = new FormData();
+  formData.append('description', description)
+  formData.append('critere', critere);
+  formData.append('type', type);
+  formData.append('seuil_type', seuilType);
+  
+  if (seuilType === "critere") {
+      formData.append('seuil_critere', seuil);
+  } else {
+      formData.append('seuil_valeur', seuil);
+  }
+  
+  // Ajouter le token CSRF
+  formData.append('csrfmiddlewaretoken', document.querySelector('[name=csrfmiddlewaretoken]').value);
+
+  // Envoyer la requête AJAX
+  fetch('/save-contrainte/', {
+      method: 'POST',
+      body: formData
+  })
+  .then(response => response.json())
+  .then(data => {
+      if (data.status === 'success') {
+          // Afficher un toast de succès
+          showToast('Succès', 'Contrainte enregistrée avec succès !', 'success');
+          
+          // Fermer la modal
+          const modalEl = document.getElementById('contrainteModal');
+          const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+          if (!modal) {
+            // Si l'instance n'existe pas, créez-en une nouvelle
+            modal = new bootstrap.Modal(modalEl);
+          }
+          modal.hide();
+          
+          // Recharger la page pour afficher la nouvelle contrainte
+          setTimeout(() => {
+              location.reload();
+          }, 1000);
+      } else {
+          // Afficher un toast d'erreur
+          showToast('Erreur', 'Erreur lors de l\'enregistrement: ' + (data.message || 'Erreur inconnue'), 'error');
+      }
+  })
+  .catch(error => {
+      console.error('Erreur :', error);
+      showToast('Erreur', 'Une erreur est survenue: ' + error.message, 'error');
+  });
+});
+document.getElementById("contrainteForm").addEventListener("submit", function(event) {
+  // Get the currently selected radio button
+  const selectedType = document.querySelector('input[name="seuil_type"]:checked')?.value;
+  
+  // If "valeur" is selected, make sure seuil_valeur is required
+  if(selectedType === "valeur") {
+    document.getElementById("seuil_valeur").setAttribute("required", "required");
+    document.getElementById("seuil_critere").removeAttribute("required");
+  } 
+  // If "critere" is selected, make sure seuil_critere is required
+  else if(selectedType === "critere") {
+    document.getElementById("seuil_critere").setAttribute("required", "required");
+    document.getElementById("seuil_valeur").removeAttribute("required");
+  }
+  // If nothing is selected, prevent the form submission
+  else {
+    event.preventDefault();
+    showToast('Erreur', 'Veuillez sélectionner un type de seuil (Critère ou Valeur)', 'error');
+  }
+});
+
+document.addEventListener('DOMContentLoaded', function() {
+  // Initialiser les toasts si jQuery est utilisé (Bootstrap 4)
+  try {
+    $('.toast').toast({
+      autohide: true,
+      delay: 3000
+    });
+  } catch (e) {
+    console.log('Initialisation des toasts avec jQuery non disponible');
+  }
+  
+});
+</script>
 </body>
 </html>

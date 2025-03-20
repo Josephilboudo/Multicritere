@@ -47,7 +47,8 @@ def critere(request):
 
 def contrainte(request):
     contraintes = Contrainte.objects.all()
-    return render(request, 'contrainte.html', {'contraintes': contraintes})
+    criteres = Critere.objects.all()
+    return render(request, 'contrainte.html', {'contraintes': contraintes, 'criteres': criteres})
 
 
 def couplage(request):
@@ -870,7 +871,62 @@ def delete_critere(request, id):
             critere.delete()
             return JsonResponse({'status': 'success'})
         except Critere.DoesNotExist:
-            return JsonResponse({'status': 'error', 'message': 'Objectif not found'}, status=404)
+            return JsonResponse({'status': 'error', 'message': 'Ressource not found'}, status=404)
 
 
 
+#contraintes
+@csrf_exempt
+def delete_contrainte(request, id):
+    if request.method == 'DELETE':
+        try:
+            contrainte = Contrainte.objects.get(pk=id)
+            contrainte.delete()
+            return JsonResponse({'status': 'success'})
+        except Critere.DoesNotExist:
+            return JsonResponse({'status': 'error', 'message': 'Ressource not found'}, status=404)
+def save_contrainte(request):
+    if request.method == 'POST':
+        try:
+            # Récupérer les données du formulaire
+            critere_cible = request.POST.get('critere')
+            type_contrainte = request.POST.get('type')
+            seuil_type = request.POST.get('seuil_type')
+            description = request.POST.get('description')
+            
+            # Déterminer la valeur du seuil en fonction du type sélectionné
+            if seuil_type == 'critere':
+                seuil = request.POST.get('seuil_critere')
+            else:  # seuil_type == 'valeur'
+                seuil = request.POST.get('seuil_valeur')
+            
+            # Créer une nouvelle instance de Contrainte
+            nouvelle_contrainte = Contrainte(
+                description=description,
+                critere_cible=critere_cible,
+                type=type_contrainte,
+                seuil=seuil
+            )
+            
+            # Sauvegarder dans la base de données
+            nouvelle_contrainte.save()
+            
+            # Renvoyer une réponse JSON en cas de succès
+            return JsonResponse({
+                'status': 'success',
+                'message': 'Contrainte ajoutée avec succès',
+                'id': nouvelle_contrainte.idContrainte
+            })
+            
+        except Exception as e:
+            # Renvoyer une réponse JSON en cas d'erreur
+            return JsonResponse({
+                'status': 'error',
+                'message': str(e)
+            }, status=400)
+    
+    # Si la méthode HTTP n'est pas POST
+    return JsonResponse({
+        'status': 'error',
+        'message': 'Méthode non autorisée'
+    }, status=405)

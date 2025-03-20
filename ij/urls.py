@@ -19,7 +19,7 @@ from django.contrib import admin
 from django.urls import include, path
 
 from ij.calcul import calculer_cout_view, generer_couplages_view
-from .views import add_objectif, connect_database, connect_to_external_db, contrainte, crit, delete_couplage, delete_critere, delete_objectif, objectif,delete_element, delete_ressource, element_list, execute_join, get_columns, get_couplage_json, get_critere_json, get_ressource_json, get_table_columns, get_tables, home, element, couplage, import_data, import_dataCouplage, ressource, critere, save_couplage, save_critere, save_element, get_elements_json, import_elements, import_dataRessource, save_ressource
+from .views import add_objectif, connect_database, delete_contrainte, connect_to_external_db,save_contrainte, contrainte, crit, delete_couplage, delete_critere, delete_objectif, objectif,delete_element, delete_ressource, element_list, execute_join, get_columns, get_couplage_json, get_critere_json, get_ressource_json, get_table_columns, get_tables, home, element, couplage, import_data, import_dataCouplage, ressource, critere, save_couplage, save_critere, save_element, get_elements_json, import_elements, import_dataRessource, save_ressource
 
 urlpatterns = [
     path('admin/', admin.site.urls),
@@ -76,14 +76,18 @@ urlpatterns = [
     path('execute_join/', execute_join, name='execute_join'),
     path('critere/save/', save_critere, name='save_critere'),
     
+    #contraintes
+    path('save-contrainte/', save_contrainte, name = 'save_contrainte'),
+    
     
     
     #objectifs
-    path('objectif', objectif, name = 'objectif'),
+    path('objectif/', objectif, name = 'objectif'),
     path('add-objectif/', add_objectif, name='add_objectif'),
     path('delete-objectif/<int:id>/', delete_objectif, name='delete_objectif'),
     
     #contraintes
-    path('contrainte', contrainte, name='contrainte')
+    path('contrainte', contrainte, name='contrainte'),
+    path('delete-contrainte/<int:id>', delete_contrainte, name='delete_contrainte')
 
 ]
