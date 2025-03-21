@@ -19,7 +19,7 @@ from django.contrib import admin
 from django.urls import include, path
 
 from ij.calcul import calculer_cout_view, generer_couplages_view, verifier_contraintes
-from .views import add_objectif, connect_database, delete_contrainte, connect_to_external_db,save_contrainte, contrainte, crit, delete_couplage, delete_critere, delete_objectif, objectif,delete_element, delete_ressource, element_list, execute_join, get_columns, get_couplage_json, get_critere_json, get_ressource_json, get_table_columns, get_tables, home, element, couplage, import_data, import_dataCouplage, ressource, critere, save_couplage, save_critere, save_element, get_elements_json, import_elements, import_dataRessource, save_ressource
+from .views import add_objectif, connect_database, delete_contrainte, connect_to_external_db, generate_population_view,save_contrainte, contrainte, crit, delete_couplage, delete_critere, delete_objectif, objectif,delete_element, delete_ressource, element_list, execute_join, get_columns, get_couplage_json, get_critere_json, get_ressource_json, get_table_columns, get_tables, home, element, couplage, import_data, import_dataCouplage, ressource, critere, save_couplage, save_critere, save_element, get_elements_json, import_elements, import_dataRessource, save_ressource
 
 urlpatterns = [
     path('admin/', admin.site.urls),
@@ -90,5 +90,12 @@ urlpatterns = [
     path('contrainte', contrainte, name='contrainte'),
     path('delete-contrainte/<int:id>', delete_contrainte, name='delete_contrainte'),
     path("verifier-contraintes/", verifier_contraintes, name="verifier_contraintes"),
+    
+    
+    
+    
+    
+    #generer populaion
+    path('generer-population/', generate_population_view, name='generer_population'),
 
 ]

@@ -200,6 +200,7 @@ def respecter_contrainte(valeur, seuil, type_contrainte):
         print(f"Erreur dans respecter_contrainte: {e}")
         return False  # Si une erreur se produit, contrainte non respectée
 
+#vue pour la fonction de verification de contraintes sur les solutions
 @csrf_exempt  # Désactive la vérification CSRF pour les tests (à sécuriser ensuite)
 def verifier_contraintes(request):
     if request.method == "POST":
@@ -207,6 +208,73 @@ def verifier_contraintes(request):
         return JsonResponse(result)  # Retourne le résultat au frontend
     return JsonResponse({"status": "error", "message": "Requête invalide"}, status=400)
 
+
+
+
+#Pour la verification des contraintes sur les solutions
+from collections import defaultdict
+def verifier_contraintes_solution(solution, contraintes):
+    # Dictionnaire pour regrouper les valeurs des critères par ressource
+    aggregation_criteres = defaultdict(lambda: defaultdict(float))
+
+    # Étape 1: Groupement des valeurs par ressource
+    for item in solution:
+        if isinstance(item, dict) and 'couplage' in item:
+            # L'item est un dictionnaire, donc c'est un CouplageCritere sérialisé
+            couplage_id = item['couplage']  # Utilisez l'ID du couplage
+            valeur_criteres = item['valeur']
+            
+            # Vérifiez que 'valeur' est bien un dictionnaire avant d'itérer
+            if not isinstance(valeur_criteres, dict):
+                # Si ce n'est pas un dictionnaire, on passe à l'élément suivant
+                continue
+        else:
+            # Si c'est simplement un codeElement, utilisez-le directement
+            couplage_id = item
+            valeur_criteres = {}  # Aucun critère associé dans ce cas
+
+        # Récupérer l'objet couplage à partir de l'ID
+        try:
+            couplage = Couplage.objects.get(id=couplage_id)  # Récupérer l'objet Couplage par son ID
+            ressource = couplage.ressource  # Maintenant, vous pouvez accéder à la ressource
+        except Couplage.DoesNotExist:
+            continue  # Si le couplage n'existe pas, passer à l'élément suivant
+
+        # Traitez les critères uniquement si 'valeur_criteres' est un dictionnaire
+        if isinstance(valeur_criteres, dict):
+            for critere, valeur in valeur_criteres.items():
+                aggregation_criteres[ressource][critere] += valeur  # Somme des valeurs par critère
+
+    # Étape 2: Vérification des contraintes sur les critères agrégés
+    for contrainte in contraintes:
+        critere_cible = contrainte.critere_cible  # Ex: "volume_horaire"
+        seuil = contrainte.seuil  # Ex: "volume_statutaire" ou valeur numérique
+        type_contrainte = contrainte.type  # "max", "min", "egal"
+
+        for ressource, criteres in aggregation_criteres.items():
+            if critere_cible not in criteres:
+                continue  # Passer à la ressource suivante si critère non trouvé
+
+            valeur_totale = criteres[critere_cible]  # Somme du critère pour cette ressource
+
+            # Si le seuil est un critère et non une valeur fixe, récupérer sa valeur agrégée
+            try:
+                seuil_numerique = float(seuil)
+            except ValueError:
+                if seuil in criteres:
+                    seuil_numerique = float(criteres[seuil])
+                else:
+                    continue  # Seuil inconnu, on passe
+
+            # Vérification de la contrainte
+            if type_contrainte == "<" and valeur_totale > seuil_numerique:
+                return False  # Contrainte violée
+            elif type_contrainte == ">" and valeur_totale < seuil_numerique:
+                return False  # Contrainte violée
+            elif type_contrainte == "=" and valeur_totale != seuil_numerique:
+                return False  # Contrainte violée
+
+    return True  # Toutes les contraintes sont respectées
 
 
 

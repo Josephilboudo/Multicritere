@@ -106,7 +106,8 @@
                       </button>
                       <button id="btn-verifier" class="btn btn-primary">Vérifier</button>
                       <p id="message"></p>
-          
+                      <!--Bouton pour generer pop-->
+                      <button id="generateButton" class="btn btn-success">Générer la population</button>
                       <!-- Tableau des objectifs -->
                       <div id="element-list-container">
                         <table class="table table-striped">
@@ -473,6 +474,30 @@ document.getElementById("btn-verifier").addEventListener("click", function() {
   .catch(error => console.error("Erreur :", error));
 });
 
+//a supprimer apres concerne generation de population
+document.getElementById("generateButton").addEventListener("click", function() {
+  // Faire une requête AJAX POST
+  fetch("{% url 'generer_population' %}", {
+    method: "POST",
+    headers: {
+      'Content-Type': 'application/json',
+      'X-CSRFToken': '{{ csrf_token }}',  // Assurez-vous d'inclure le token CSRF
+    },
+    body: JSON.stringify({})
+  })
+  .then(response => response.json())
+  .then(data => {
+    if (data.message) {
+      // Afficher un toast de notification
+      showToast('Succès', data.message, 'success');
+    }
+    // Vous pouvez également manipuler la population générée ici si nécessaire
+  })
+  .catch(error => {
+    console.error('Erreur:', error);
+    showToast('Erreur', 'Impossible de générer la population.', 'error');
+  });
+});
 document.addEventListener('DOMContentLoaded', function() {
   // Initialiser les toasts si jQuery est utilisé (Bootstrap 4)
   try {

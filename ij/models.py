@@ -42,7 +42,13 @@ class CouplageCritere(models.Model):
     idValeur = models.AutoField(primary_key=True)
     couplage = models.ForeignKey(Couplage, on_delete=models.CASCADE)
     valeur= models.JSONField()
-    
+    def to_dict(self):
+        # Retourner un dictionnaire avec les informations du modèle
+        return {
+            'idValeur': self.idValeur,
+            'couplage': self.couplage.id,  # Utiliser l'ID du couplage, pas l'objet complet
+            'valeur': self.valeur
+        }
 
 class Contrainte(models.Model):
     idContrainte = models.AutoField(primary_key=True)

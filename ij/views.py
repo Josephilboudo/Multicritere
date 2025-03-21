@@ -10,6 +10,8 @@ from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.core.files.storage import default_storage
 import pandas as pd
+
+from ij.algorithmeOptimisation import generer_population_initiale
 from .form import FichierCSVForm
 from .models import CouplageCritere, Element, Ressource, Critere, Contrainte, Solution, Couplage, Objectif
 from .utils import get_dynamic_connection
@@ -932,3 +934,16 @@ def save_contrainte(request):
         'status': 'error',
         'message': 'Méthode non autorisée'
     }, status=405)
+    
+    
+    
+    
+#temp pour generer population
+def generate_population_view(request):
+    taille_population = 10
+    contraintes = Contrainte.objects.all()
+    if request.method == 'POST':
+        # Appelez votre fonction ici
+        population = generer_population_initiale(taille_population, contraintes)
+        # Retourner un message de succès ou d'autres données si nécessaire
+        return JsonResponse({'message': 'Population générée avec succès!', 'population': population})
