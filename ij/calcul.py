@@ -111,7 +111,7 @@ def generer_couplages_view(request):
 
 def filtrer_couplage_criteres():
     try:
-        contraintes = Contrainte.objects.all()
+        contraintes = Contrainte.objects.filter(estAppliqueSolution=False)
         couplages = CouplageCritere.objects.all()
         # Liste des IDs à supprimer
         ids_a_supprimer = []

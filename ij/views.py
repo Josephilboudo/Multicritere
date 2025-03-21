@@ -893,6 +893,7 @@ def save_contrainte(request):
             type_contrainte = request.POST.get('type')
             seuil_type = request.POST.get('seuil_type')
             description = request.POST.get('description')
+            estAppliqueSolution = request.POST.get('solution')
             
             # Déterminer la valeur du seuil en fonction du type sélectionné
             if seuil_type == 'critere':
@@ -905,7 +906,8 @@ def save_contrainte(request):
                 description=description,
                 critere_cible=critere_cible,
                 type=type_contrainte,
-                seuil=seuil
+                seuil=seuil,
+                estAppliqueSolution=estAppliqueSolution
             )
             
             # Sauvegarder dans la base de données

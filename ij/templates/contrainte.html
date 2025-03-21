@@ -128,7 +128,7 @@
                               <td>{{contrainte.seuil}}</td>
                               <td>
                                 <button class="btn btn-danger btn-sm" onclick="deleteObjectif('{{ contrainte.idContrainte }}')">
-                                  <i class="fas fa-trash"></i> Supprimer
+                                  <i class="fas fa-trash"></i>
                                 </button>
                               </td>
                             </tr>
@@ -201,6 +201,14 @@
                           <option value="<">Infériorité</option>
                       </select>
                   </div>
+                  <!-- Type de contrainte solution ou non -->
+                  <div class="mb-3">
+                    <label for="type" class="form-label">Critere sur solution?</label>
+                    <select id="solution" name = "solution" class="form-select" required>
+                        <option value="Tru">Oui</option>
+                        <option value="False">Non</option>
+                    </select>
+                </div>
 
                   <!-- Choix entre "Critère" ou "Valeur" -->
                   <div class="mb-3">
@@ -365,6 +373,7 @@ document.getElementById("contrainteForm").addEventListener("submit", function(ev
   // Récupérer les valeurs du formulaire
   let description = document.getElementById("description").value;
   let critere = document.getElementById("critere").value;
+  let solution = document.getElementById("solution").value;
   let type = document.getElementById("type").value;
   let seuilType = document.querySelector('input[name="seuil_type"]:checked').value;
   let seuil = seuilType === "critere"
@@ -383,6 +392,7 @@ document.getElementById("contrainteForm").addEventListener("submit", function(ev
   formData.append('critere', critere);
   formData.append('type', type);
   formData.append('seuil_type', seuilType);
+  formData.append('solution', solution);
   
   if (seuilType === "critere") {
       formData.append('seuil_critere', seuil);
