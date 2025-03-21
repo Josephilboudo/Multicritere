@@ -762,10 +762,7 @@ def get_critere_json(request):
         'message': "Méthode non autorisée"
     })
     
-from django.shortcuts import get_object_or_404
-from django.http import JsonResponse
-from .models import Critere
-
+    
 @csrf_exempt
 def save_critere(request):
     if request.method == 'POST':
@@ -887,6 +884,7 @@ def delete_contrainte(request, id):
             return JsonResponse({'status': 'success'})
         except Critere.DoesNotExist:
             return JsonResponse({'status': 'error', 'message': 'Ressource not found'}, status=404)
+
 def save_contrainte(request):
     if request.method == 'POST':
         try:
@@ -941,7 +939,7 @@ def save_contrainte(request):
 #temp pour generer population
 def generate_population_view(request):
     taille_population = 10
-    contraintes = Contrainte.objects.all()
+    contraintes = Contrainte.objects.filter(estAppliqueSolution=True).all()
     if request.method == 'POST':
         # Appelez votre fonction ici
         population = generer_population_initiale(taille_population, contraintes)

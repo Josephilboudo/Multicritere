@@ -1,3 +1,4 @@
+from collections import defaultdict
 from datetime import datetime
 from decimal import Decimal
 import json
@@ -210,71 +211,102 @@ def verifier_contraintes(request):
 
 
 
-
-#Pour la verification des contraintes sur les solutions
+import json
 from collections import defaultdict
+
 def verifier_contraintes_solution(solution, contraintes):
     # Dictionnaire pour regrouper les valeurs des critères par ressource
     aggregation_criteres = defaultdict(lambda: defaultdict(float))
 
     # Étape 1: Groupement des valeurs par ressource
     for item in solution:
+        print(f"Traitement de l'élément: {item}")  # Debugging: Vérifier l'élément de solution
         if isinstance(item, dict) and 'couplage' in item:
             # L'item est un dictionnaire, donc c'est un CouplageCritere sérialisé
-            couplage_id = item['couplage']  # Utilisez l'ID du couplage
+            couplage_id = item['couplage']
             valeur_criteres = item['valeur']
             
-            # Vérifiez que 'valeur' est bien un dictionnaire avant d'itérer
-            if not isinstance(valeur_criteres, dict):
-                # Si ce n'est pas un dictionnaire, on passe à l'élément suivant
-                continue
-        else:
-            # Si c'est simplement un codeElement, utilisez-le directement
-            couplage_id = item
-            valeur_criteres = {}  # Aucun critère associé dans ce cas
+            # Vérification si 'valeur' est un dictionnaire
+            if isinstance(valeur_criteres, str):
+                print(f"Valeur sérialisée trouvée, tentative de conversion en dictionnaire: {valeur_criteres}")  # Debugging
+                try:
+                    valeur_criteres = json.loads(valeur_criteres)  # Convertir la valeur sérialisée en dictionnaire
+                except json.JSONDecodeError:
+                    print(f"Erreur de conversion JSON pour {valeur_criteres}")  # Debugging
+                    continue  # Si la conversion échoue, ignorer cet élément
+            elif not isinstance(valeur_criteres, dict):
+                continue  # Passer à l'élément suivant si 'valeur' n'est pas un dictionnaire
 
-        # Récupérer l'objet couplage à partir de l'ID
+        # Vérification que l'objet Couplage existe bien dans la base de données
         try:
-            couplage = Couplage.objects.get(id=couplage_id)  # Récupérer l'objet Couplage par son ID
-            ressource = couplage.ressource  # Maintenant, vous pouvez accéder à la ressource
+            couplage = Couplage.objects.get(id=couplage_id)  # Récupérer l'objet Couplage
+            ressource = couplage.ressource  # Accéder à la ressource
         except Couplage.DoesNotExist:
+            print(f"Couplage avec ID {couplage_id} introuvable")  # Debugging
             continue  # Si le couplage n'existe pas, passer à l'élément suivant
 
-        # Traitez les critères uniquement si 'valeur_criteres' est un dictionnaire
+        # Agrégation des critères
         if isinstance(valeur_criteres, dict):
             for critere, valeur in valeur_criteres.items():
+                print(f"Agrégation du critère: {critere} avec valeur {valeur}")  # Debugging
+                
+                # Vérification si la valeur est None et remplacer par 0
+                if valeur is None:
+                    print(f"Valeur pour le critère '{critere}' est None, elle sera remplacée par 0.")  # Debugging
+                    valeur = 0  # Remplacer None par 0 ou ignorer selon ce que tu préfères
+
+                try:
+                    # Si la valeur est une chaîne, la convertir en float
+                    if isinstance(valeur, str):
+                        valeur = float(valeur)
+                except ValueError:
+                    print(f"Erreur de conversion de la valeur '{valeur}' pour le critère '{critere}'")  # Debugging
+                    continue  # Si la conversion échoue, ignorer cet élément
+
                 aggregation_criteres[ressource][critere] += valeur  # Somme des valeurs par critère
 
-    # Étape 2: Vérification des contraintes sur les critères agrégés
+    # Affichage des résultats d'agrégation pour vérification
+    print(f"\nAgrégation des critères par ressource : {dict(aggregation_criteres)}")
+    for ressource, criteres in aggregation_criteres.items():
+        print(f"Ressource: {ressource}, Critères: {criteres}")
+
+    # Vérification des contraintes
     for contrainte in contraintes:
-        critere_cible = contrainte.critere_cible  # Ex: "volume_horaire"
-        seuil = contrainte.seuil  # Ex: "volume_statutaire" ou valeur numérique
-        type_contrainte = contrainte.type  # "max", "min", "egal"
+        critere_cible = contrainte.critere_cible
+        seuil = contrainte.seuil
+        type_contrainte = contrainte.type
+
+        print(f"\nVérification de la contrainte : {critere_cible} {type_contrainte} {seuil}")
 
         for ressource, criteres in aggregation_criteres.items():
             if critere_cible not in criteres:
+                print(f"  Pas de critère {critere_cible} trouvé pour la ressource {ressource}")
                 continue  # Passer à la ressource suivante si critère non trouvé
 
-            valeur_totale = criteres[critere_cible]  # Somme du critère pour cette ressource
+            valeur_totale = criteres[critere_cible]
+            print(f"  Valeur totale pour {critere_cible} : {valeur_totale}")
 
-            # Si le seuil est un critère et non une valeur fixe, récupérer sa valeur agrégée
             try:
                 seuil_numerique = float(seuil)
             except ValueError:
                 if seuil in criteres:
                     seuil_numerique = float(criteres[seuil])
                 else:
-                    continue  # Seuil inconnu, on passe
+                    print(f"  Seuil {seuil} non trouvé dans les critères pour la ressource {ressource}")
+                    continue
+
+            print(f"  Ressource: {ressource} → {critere_cible} = {valeur_totale} (Seuil: {seuil_numerique})")
+
 
             # Vérification de la contrainte
             if type_contrainte == "<" and valeur_totale > seuil_numerique:
+                print(f"  Contrainte violée : {valeur_totale} > {seuil_numerique}")
                 return False  # Contrainte violée
             elif type_contrainte == ">" and valeur_totale < seuil_numerique:
+                print(f"  Contrainte violée : {valeur_totale} < {seuil_numerique}")
                 return False  # Contrainte violée
             elif type_contrainte == "=" and valeur_totale != seuil_numerique:
+                print(f"  Contrainte violée : {valeur_totale} != {seuil_numerique}")
                 return False  # Contrainte violée
 
     return True  # Toutes les contraintes sont respectées
-
-
-
