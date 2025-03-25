@@ -59,14 +59,7 @@ def generer_population_initiale(taille_population, contraintes):
         print(f"Attention: Seulement {len(population)} solutions valides trouvées sur {taille_population} demandées après {tentatives} tentatives")
     else:
         print(f"Population initiale de {taille_population} solutions générée avec succès")
-
-    # Sélection des parents pour la reproduction
-    if population:  # Vérifier que la population n'est pas vide
-        nb_parents = min(2, len(population))  # Assurer que nb_parents n'est pas supérieur
-        ij = selection_nsga2(population, nb_parents)
-        print(ij)
-        
-        
+    return population
 #fitness
 def evaluer_fitness(solution, objectifs):
     score = {}
@@ -210,3 +203,105 @@ def selection_nsga2(population, nb_parents):
             break
     
     return [population[i] for i in selected_parents]
+
+
+#croisement
+def croisement(parent1, parent2):
+    """
+    Effectue un croisement entre deux solutions parentes.
+    Le croisement est fait sur les objectifs de chaque solution (données).
+    """
+    # Assurer que les parents sont valides
+    if not isinstance(parent1, dict) or not isinstance(parent2, dict):
+        raise TypeError("Les parents doivent être des dictionnaires")
+
+    if 'data' not in parent1 or 'data' not in parent2:
+        raise ValueError("Les solutions doivent contenir la clé 'data' pour les données")
+
+    # Sélectionner un point de croisement aléatoire
+    point_croisement = random.randint(1, len(parent1['data']) - 1)
+
+    # Créer un enfant en combinant les parties des parents
+    enfant_data = parent1['data'][:point_croisement] + parent2['data'][point_croisement:]
+    
+    # Créer l'enfant avec la même structure que les parents
+    enfant = {
+        'data': enfant_data,
+        'objectifs': {}  # Les objectifs seront calculés après le croisement
+    }
+
+    return enfant
+
+
+#mutation
+def mutation(solution, mutation_rate=0.1):
+    """
+    Effectue une mutation sur une solution donnée avec un taux de mutation donné.
+    """
+    # Assurer que la solution est valide
+    if not isinstance(solution, dict):
+        raise TypeError("La solution doit être un dictionnaire")
+
+    if 'data' not in solution:
+        raise ValueError("La solution doit contenir la clé 'data'")
+
+    # Appliquer la mutation sur les données avec un certain taux
+    for i in range(len(solution['data'])):
+        if random.random() < mutation_rate:
+            # Appliquer une mutation (changement aléatoire du couplage ou de l'élément)
+            solution['data'][i] = random.choice(Element.objects.all()).codeElement
+
+    # Recalculer les objectifs après mutation
+    solution['objectifs'] = evaluer_fitness(solution['data'], Objectif.objects.all())
+
+    return solution
+
+
+
+def generer_nouvelle_population(population, nb_enfants, mutation_rate=0.1):
+    #Génère une nouvelle population en croisant et mutant les parents sélectionnés.
+    nouvelle_population = []
+    
+    # Sélectionner les parents
+    parents = selection_nsga2(population, nb_enfants)
+
+    # Créer des enfants par croisement et mutation
+    while len(nouvelle_population) < nb_enfants:
+        # Sélectionner deux parents aléatoires
+        parent1, parent2 = random.sample(parents, 2)
+
+        # Effectuer un croisement pour générer un enfant
+        enfant = croisement(parent1, parent2)
+
+        # Appliquer une mutation à l'enfant
+        enfant_muté = mutation(enfant, mutation_rate)
+
+        # Ajouter l'enfant à la nouvelle population
+        nouvelle_population.append(enfant_muté)
+    print(nouvelle_population)
+
+    return nouvelle_population
+
+
+#Boucle principale pour l'agorithme genetique
+def evolution_genetique(taille_population, contraintes, generations=10, mutation_rate=0.1):
+    # Générer la population initiale
+    population = generer_population_initiale(taille_population, contraintes)
+
+    for generation in range(generations):
+        print(f"===== Génération {generation + 1} =====")
+
+        # Sélection des parents avec NSGA-II
+        nb_parents = min(5, len(population))  # Nombre de parents à sélectionner
+        parents = selection_nsga2(population, nb_parents)
+
+        # Génération d'une nouvelle population
+        nouvelle_population = generer_nouvelle_population(parents, taille_population, mutation_rate)
+
+        # Mise à jour de la population
+        population = nouvelle_population
+
+        print(f"Population mise à jour: {len(population)} individus")
+
+    print("Évolution terminée.")
+    return population

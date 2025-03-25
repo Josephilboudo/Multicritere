@@ -11,7 +11,7 @@ from django.views.decorators.csrf import csrf_exempt
 from django.core.files.storage import default_storage
 import pandas as pd
 
-from ij.algorithmeOptimisation import generer_population_initiale
+from ij.algorithmeGenetique import evolution_genetique, generer_population_initiale
 from .form import FichierCSVForm
 from .models import CouplageCritere, Element, Ressource, Critere, Contrainte, Solution, Couplage, Objectif
 from .utils import get_dynamic_connection
@@ -942,6 +942,6 @@ def generate_population_view(request):
     contraintes = Contrainte.objects.filter(estAppliqueSolution=True).all()
     if request.method == 'POST':
         # Appelez votre fonction ici
-        population = generer_population_initiale(taille_population, contraintes)
+        population = evolution_genetique(taille_population, contraintes, generations=10, mutation_rate=0.1)
         # Retourner un message de succès ou d'autres données si nécessaire
         return JsonResponse({'message': 'Population générée avec succès!', 'population': population})
