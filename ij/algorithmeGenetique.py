@@ -201,35 +201,27 @@ def selection_nsga2(population, nb_parents):
             sorted_front = sorted(front, key=lambda i: distances[i], reverse=True)
             selected_parents.extend(sorted_front[:nb_parents - len(selected_parents)])
             break
-    
+
     return [population[i] for i in selected_parents]
 
 
 #croisement
 def croisement(parent1, parent2):
     """
-    Effectue un croisement entre deux solutions parentes.
-    Le croisement est fait sur les objectifs de chaque solution (données).
+    Effectue un croisement entre deux parents pour créer un enfant.
     """
-    # Assurer que les parents sont valides
-    if not isinstance(parent1, dict) or not isinstance(parent2, dict):
-        raise TypeError("Les parents doivent être des dictionnaires")
+    # Vérifier que les deux parents ont suffisamment d'éléments pour un croisement
+    if len(parent1['data']) < 2 or len(parent2['data']) < 2:
+        raise ValueError("Les parents doivent avoir plus d'un élément dans 'data' pour effectuer un croisement")
 
-    if 'data' not in parent1 or 'data' not in parent2:
-        raise ValueError("Les solutions doivent contenir la clé 'data' pour les données")
-
-    # Sélectionner un point de croisement aléatoire
+    # Générer un point de croisement valide
     point_croisement = random.randint(1, len(parent1['data']) - 1)
 
-    # Créer un enfant en combinant les parties des parents
-    enfant_data = parent1['data'][:point_croisement] + parent2['data'][point_croisement:]
-    
-    # Créer l'enfant avec la même structure que les parents
+    # Effectuer le croisement (exemple de logique simple, à adapter selon ton besoin)
     enfant = {
-        'data': enfant_data,
-        'objectifs': {}  # Les objectifs seront calculés après le croisement
+        'data': parent1['data'][:point_croisement] + parent2['data'][point_croisement:],
+        'objectifs': evaluer_fitness(parent1['data'][:point_croisement] + parent2['data'][point_croisement:], Objectif.objects.all())
     }
-
     return enfant
 
 
@@ -238,30 +230,38 @@ def mutation(solution, mutation_rate=0.1):
     """
     Effectue une mutation sur une solution donnée avec un taux de mutation donné.
     """
-    # Assurer que la solution est valide
-    if not isinstance(solution, dict):
-        raise TypeError("La solution doit être un dictionnaire")
-
+    print("Données avant mutation:", solution['data'])  # Affiche les données avant mutation
+    
     if 'data' not in solution:
         raise ValueError("La solution doit contenir la clé 'data'")
 
-    # Appliquer la mutation sur les données avec un certain taux
+    # Vérifier la structure des données
+    for elem in solution['data']:
+        if not isinstance(elem, dict):
+            raise TypeError(f"Un élément de 'data' n'est pas un dictionnaire: {elem}")
+
+    # Appliquer la mutation sur les données
     for i in range(len(solution['data'])):
         if random.random() < mutation_rate:
-            # Appliquer une mutation (changement aléatoire du couplage ou de l'élément)
+            # Effectuer une mutation, par exemple changer 'couplage'
             solution['data'][i] = random.choice(Element.objects.all()).codeElement
+
+    # Supprimer les doublons après mutation
+    seen = set()
+    solution['data'] = [elem for elem in solution['data'] if isinstance(elem, dict) and elem['couplage'] not in seen and not seen.add(elem['couplage'])]
 
     # Recalculer les objectifs après mutation
     solution['objectifs'] = evaluer_fitness(solution['data'], Objectif.objects.all())
 
+    print("Données après mutation:", solution['data'])  # Affiche les données après mutation
+    
     return solution
 
 
 
 def generer_nouvelle_population(population, nb_enfants, mutation_rate=0.1):
-    #Génère une nouvelle population en croisant et mutant les parents sélectionnés.
     nouvelle_population = []
-    
+
     # Sélectionner les parents
     parents = selection_nsga2(population, nb_enfants)
 
@@ -278,7 +278,6 @@ def generer_nouvelle_population(population, nb_enfants, mutation_rate=0.1):
 
         # Ajouter l'enfant à la nouvelle population
         nouvelle_population.append(enfant_muté)
-    print(nouvelle_population)
 
     return nouvelle_population
 
@@ -287,12 +286,14 @@ def generer_nouvelle_population(population, nb_enfants, mutation_rate=0.1):
 def evolution_genetique(taille_population, contraintes, generations=10, mutation_rate=0.1):
     # Générer la population initiale
     population = generer_population_initiale(taille_population, contraintes)
+    print("popo generee")
+    print(population[0])
 
     for generation in range(generations):
         print(f"===== Génération {generation + 1} =====")
 
         # Sélection des parents avec NSGA-II
-        nb_parents = min(5, len(population))  # Nombre de parents à sélectionner
+        nb_parents = min(2, len(population))  # Nombre de parents à sélectionner
         parents = selection_nsga2(population, nb_parents)
 
         # Génération d'une nouvelle population
@@ -300,7 +301,8 @@ def evolution_genetique(taille_population, contraintes, generations=10, mutation
 
         # Mise à jour de la population
         population = nouvelle_population
-
+        print(f"populatation1:{population[1]}")
+        print(f"populatation2:{population[2]}")
         print(f"Population mise à jour: {len(population)} individus")
 
     print("Évolution terminée.")

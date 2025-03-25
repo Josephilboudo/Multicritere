@@ -1,77 +1,83 @@
-import json
 import random
 import math
+import copy
 
-def fonction_objectif(solution):
-    """
-    Évalue une solution en fonction des objectifs (compétence, charge de travail, etc.).
+def generer_voisin(solution, ensemble_possibilites):
+    """Génère un voisin en respectant les contraintes"""
+    voisin = copy.deepcopy(solution)
     
-    :param solution: Dictionnaire contenant "data" et "objectifs"
-    :return: Score global de la solution
-    """
-    score = 0
+    modifiable_indexes = [i for i, item in enumerate(voisin["data"]) if est_modifiable(item)]
+    if not modifiable_indexes:
+        return solution  
+
+    index = random.choice(modifiable_indexes)
+    valeurs_possibles = [val for val in ensemble_possibilites if val != voisin["data"][index]]
     
-    # Extraction des objectifs
-    objectifs = solution.get("objectifs", {})
-    
-    # Parcours des données de la solution
-    for element in solution.get("data", []):
-        if isinstance(element, dict) and "valeur" in element:
-            # Convertir la chaîne JSON en dictionnaire
-            valeurs = json.loads(element["valeur"])
-            
-            # Ajouter les valeurs des critères aux objectifs
-            for critere, valeur in valeurs.items():
-                if critere in objectifs:
-                    score += objectifs[critere] * valeur  # On applique l'objectif correspondant
+    if valeurs_possibles:
+        voisin["data"][index] = random.choice(valeurs_possibles)
 
-    return score
-
-
-def generer_voisin(solution):
-    """
-    Génère une solution voisine en modifiant légèrement une des valeurs de 'data'.
-    """
-    voisin = solution.copy()
-    if "data" in voisin and len(voisin["data"]) > 1:
-        index = random.randint(0, len(voisin["data"]) - 1)  # Choisir un élément au hasard
-        if isinstance(voisin["data"][index], str):  # Changer un élément aléatoire
-            voisin["data"][index] = random.choice(["c1", "c2", "c3", "c4", "c5", "c6"])  # Choix arbitraire
     return voisin
 
-def recuit_simule(solution_initiale, temperature_initiale=1000, alpha=0.95, Tmin=1):
-    """
-    Algorithme du Recuit Simulé pour améliorer la solution.
-    
-    :param solution_initiale: Solution de départ (issue de l'algorithme génétique)
-    :param temperature_initiale: Température de départ
-    :param alpha: Facteur de refroidissement (0 < alpha < 1)
-    :param Tmin: Température minimale
-    :return: Meilleure solution trouvée
-    """
-    # Initialisation
-    solution_actuelle = solution_initiale
-    meilleure_solution = solution_initiale
-    meilleure_valeur = fonction_objectif(solution_initiale)
-    
-    T = temperature_initiale  # Température actuelle
-    
-    while T > Tmin:
-        # Générer un voisin
-        voisin = generer_voisin(solution_actuelle)
-        valeur_voisin = fonction_objectif(voisin)
-        
-        # Calcul de la variation de score
-        delta = valeur_voisin - meilleure_valeur
-        
-        # Décision d'acceptation
-        if delta > 0 or random.uniform(0, 1) < math.exp(delta / T):
-            solution_actuelle = voisin
-            if valeur_voisin > meilleure_valeur:
+def est_modifiable(element):
+    """Détermine si un élément peut être modifié"""
+    return not isinstance(element, dict)
+
+def recuit_simule(solution_initiale, ensemble_possibilites, temperature_initiale=100, refroidissement=0.95, iterations=1000, seuil_arret=0.1):
+    """Recuit simulé adapté pour multi-objectif multicritère"""
+    solution_courante = solution_initiale
+    meilleure_solution = solution_courante
+    temperature = temperature_initiale
+
+    for _ in range(iterations):
+        voisin = generer_voisin(solution_courante, ensemble_possibilites)
+
+        # Évaluation multi-objectif
+        score_actuel = fonction_objectif(solution_courante)
+        score_voisin = fonction_objectif(voisin)
+
+        # Comparaison multi-objectif
+        if est_meilleur(score_voisin, score_actuel) or random.random() < math.exp((sum(score_voisin) - sum(score_actuel)) / temperature):
+            solution_courante = voisin
+            if est_meilleur(score_voisin, fonction_objectif(meilleure_solution)):
                 meilleure_solution = voisin
-                meilleure_valeur = valeur_voisin
         
-        # Refroidissement
-        T *= alpha
-    
+        temperature *= refroidissement
+        if temperature < seuil_arret:
+            break
+
     return meilleure_solution
+
+def fonction_objectif(solution):
+    """Calcule les scores des différents objectifs sous forme de tuple"""
+    scores = {}
+
+    if "objectifs" not in solution:
+        return (0, 0)  # Retourne un score nul si aucun objectif n'est défini
+
+    for critere, valeur in solution["objectifs"].items():
+        if isinstance(valeur, (int, float)):  
+            scores[critere] = valeur
+
+    return tuple(scores.values())  # Retourne un tuple de scores
+
+def est_meilleur(score1, score2):
+    """Compare deux solutions en mode multi-objectif (dominance de Pareto)"""
+    meilleur_sur_un_critere = False
+
+    for s1, s2 in zip(score1, score2):
+        if s1 > s2:  # Une amélioration sur un critère
+            meilleur_sur_un_critere = True
+        elif s1 < s2:  # Une dégradation sur un critère
+            return False
+
+    return meilleur_sur_un_critere  # Retourne True si une amélioration sans régression
+
+
+def appliquer_recuit_sur_population(population, ensemble_possibilites, temperature_initiale=100, refroidissement=0.95, iterations=1000):
+    """Applique le recuit simulé sur chaque individu de la population générée par le GA"""
+    population_amelioree = []
+    for individu in population:
+        solution_amelioree = recuit_simule(individu, ensemble_possibilites, temperature_initiale, refroidissement, iterations)
+        population_amelioree.append(solution_amelioree)
+    
+    return population_amelioree

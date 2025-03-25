@@ -12,6 +12,7 @@ from django.core.files.storage import default_storage
 import pandas as pd
 
 from ij.algorithmeGenetique import evolution_genetique, generer_population_initiale
+from ij.algorithmeRS import appliquer_recuit_sur_population
 from .form import FichierCSVForm
 from .models import CouplageCritere, Element, Ressource, Critere, Contrainte, Solution, Couplage, Objectif
 from .utils import get_dynamic_connection
@@ -943,5 +944,6 @@ def generate_population_view(request):
     if request.method == 'POST':
         # Appelez votre fonction ici
         population = evolution_genetique(taille_population, contraintes, generations=10, mutation_rate=0.1)
+        #population_optimisee = appliquer_recuit_sur_population(population, ensemble_possibilites, temperature_initiale=100, refroidissement=0.95, iterations=100)
         # Retourner un message de succès ou d'autres données si nécessaire
         return JsonResponse({'message': 'Population générée avec succès!', 'population': population})
