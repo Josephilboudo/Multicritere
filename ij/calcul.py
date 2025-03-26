@@ -269,6 +269,13 @@ def verifier_contraintes_solution(solution, contraintes):
     print(f"\nAgrégation des critères par ressource : {dict(aggregation_criteres)}")
     for ressource, criteres in aggregation_criteres.items():
         print(f"Ressource: {ressource}, Critères: {criteres}")
+        
+    if isinstance(contraintes, int):
+        # Si contraintes est un ID, récupérer les contraintes associées
+        contraintes = Contrainte.objects.filter(estAppliqueSolution=True) 
+        if not contraintes.exists():
+            return True  # Ou False selon votre logique
+    
 
     # Vérification des contraintes
     for contrainte in contraintes:

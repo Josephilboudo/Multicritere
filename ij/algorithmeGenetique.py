@@ -1,3 +1,4 @@
+from copy import deepcopy
 import json
 import random
 
@@ -10,6 +11,7 @@ def generer_population_initiale(taille_population, contraintes):
     # Récupérer tous les éléments (tâches)
     elements = list(Element.objects.all())
     objectifs = Objectif.objects.all()
+    taille_population=100
 
     # Récupérer tous les couplages critères valides
     couplages_criteres = list(CouplageCritere.objects.select_related('couplage').all())
@@ -213,7 +215,8 @@ def croisement(parent1, parent2):
     # Vérifier que les deux parents ont suffisamment d'éléments pour un croisement
     if len(parent1['data']) < 2 or len(parent2['data']) < 2:
         raise ValueError("Les parents doivent avoir plus d'un élément dans 'data' pour effectuer un croisement")
-
+    #print(f"avc1:{parent1}\n")
+    #print(f"avc2:{parent2}\n")
     # Générer un point de croisement valide
     point_croisement = random.randint(1, len(parent1['data']) - 1)
 
@@ -222,42 +225,66 @@ def croisement(parent1, parent2):
         'data': parent1['data'][:point_croisement] + parent2['data'][point_croisement:],
         'objectifs': evaluer_fitness(parent1['data'][:point_croisement] + parent2['data'][point_croisement:], Objectif.objects.all())
     }
+    #print(f"enfant: {enfant}")
     return enfant
 
 
 #mutation
 def mutation(solution, mutation_rate=0.1):
     """
-    Effectue une mutation sur une solution donnée avec un taux de mutation donné.
+    Performs mutation on a given solution with a specified mutation rate,
+    while preserving the integrity of 'couplages' and avoiding duplicates.
+    Ensures that the full coupling key (e.g., 'c6_e5') is maintained.
     """
-    print("Données avant mutation:", solution['data'])  # Affiche les données avant mutation
-    
     if 'data' not in solution:
         raise ValueError("La solution doit contenir la clé 'data'")
-
+    
+    # Sauvegarde de l'état initial de la solution
+    ancienne_solution = deepcopy(solution['data'])
+    
     # Vérifier la structure des données
     for elem in solution['data']:
-        if not isinstance(elem, dict):
-            raise TypeError(f"Un élément de 'data' n'est pas un dictionnaire: {elem}")
-
+        if not isinstance(elem, dict) or 'couplage' not in elem:
+            raise TypeError(f"Un élément de 'data' n'est pas un dictionnaire valide: {elem}")
+    
     # Appliquer la mutation sur les données
     for i in range(len(solution['data'])):
         if random.random() < mutation_rate:
-            # Effectuer une mutation, par exemple changer 'couplage'
-            solution['data'][i] = random.choice(Element.objects.all()).codeElement
-
-    # Supprimer les doublons après mutation
-    seen = set()
-    solution['data'] = [elem for elem in solution['data'] if isinstance(elem, dict) and elem['couplage'] not in seen and not seen.add(elem['couplage'])]
-
+            # Sauvegarder le couplage original
+            ancienne_valeur_couplage = solution['data'][i]['couplage']
+            
+            # Extraire le préfixe de l'élément (c1, c2, etc.)
+            prefixe = ancienne_valeur_couplage.split('_')[0]
+            
+            # Choisir un nouvel élément qui correspond au même préfixe
+            elements_candidats = [
+                elem for elem in Element.objects.all() 
+                if elem.codeElement.startswith(prefixe)
+            ]
+            
+            if elements_candidats:
+                nouvel_element = random.choice(elements_candidats)
+                
+                # Mutation du couplage en gardant le même préfixe
+                solution['data'][i]['couplage'] = nouvel_element.codeElement
+                
+                # Vérification des doublons
+                seen = set()
+                doublon_detecte = False
+                for j in range(len(solution['data'])):
+                    if solution['data'][j]['couplage'] in seen:
+                        doublon_detecte = True
+                        break
+                    seen.add(solution['data'][j]['couplage'])
+                
+                # Restaurer la valeur précédente si un doublon est détecté
+                if doublon_detecte:
+                    solution['data'][i]['couplage'] = ancienne_valeur_couplage
+    
     # Recalculer les objectifs après mutation
     solution['objectifs'] = evaluer_fitness(solution['data'], Objectif.objects.all())
-
-    print("Données après mutation:", solution['data'])  # Affiche les données après mutation
     
     return solution
-
-
 
 def generer_nouvelle_population(population, nb_enfants, mutation_rate=0.1):
     nouvelle_population = []
@@ -272,9 +299,10 @@ def generer_nouvelle_population(population, nb_enfants, mutation_rate=0.1):
 
         # Effectuer un croisement pour générer un enfant
         enfant = croisement(parent1, parent2)
-
+        #print(f"enfant a mute:{enfant}")
         # Appliquer une mutation à l'enfant
         enfant_muté = mutation(enfant, mutation_rate)
+        #print(f"enfant mute:{enfant_muté}")
 
         # Ajouter l'enfant à la nouvelle population
         nouvelle_population.append(enfant_muté)
@@ -287,23 +315,27 @@ def evolution_genetique(taille_population, contraintes, generations=10, mutation
     # Générer la population initiale
     population = generer_population_initiale(taille_population, contraintes)
     print("popo generee")
-    print(population[0])
+    print(len(population))
 
     for generation in range(generations):
-        print(f"===== Génération {generation + 1} =====")
+        print(f"===== Génération {generation + 1}  =====")
 
         # Sélection des parents avec NSGA-II
         nb_parents = min(2, len(population))  # Nombre de parents à sélectionner
         parents = selection_nsga2(population, nb_parents)
+        #print(f"p1:{population[1]}\n")
 
         # Génération d'une nouvelle population
         nouvelle_population = generer_nouvelle_population(parents, taille_population, mutation_rate)
 
         # Mise à jour de la population
         population = nouvelle_population
-        print(f"populatation1:{population[1]}")
-        print(f"populatation2:{population[2]}")
         print(f"Population mise à jour: {len(population)} individus")
+    print(f"pop1: {population[1]}\n")
+    print(f"pop10:{population[5]}\n")
+    print(f"pop9:{population[9]}")
 
     print("Évolution terminée.")
     return population
+
+
