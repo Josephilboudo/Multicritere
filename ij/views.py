@@ -1,4 +1,5 @@
 import datetime
+from django import template
 from django.conf import settings
 from django.db import IntegrityError, connections
 from django.shortcuts import redirect, render, get_object_or_404
@@ -12,18 +13,42 @@ from django.core.files.storage import default_storage
 import pandas as pd
 
 from ij.algorithmeGenetique import evolution_genetique, generer_population_initiale
-from ij.algorithmeRS import appliquer_recuit_sur_population
+from ij.algorithmeRS import hybride_genetique_recuit
 from .form import FichierCSVForm
 from .models import CouplageCritere, Element, Ressource, Critere, Contrainte, Solution, Couplage, Objectif
 from .utils import get_dynamic_connection
+
+register = template.Library()
+
+@register.filter
+def get_item(dictionary, key):
+    return dictionary.get(key)
 
 def home(request):
     total_elements = Element.objects.count()
     total_ressources = Ressource.objects.count()
     total_criteres = Critere.objects.count()
-    total_contraintes = Contrainte.objects.count()
-    
+    total_contraintes = Contrainte.objects.count()    
     solutions = Solution.objects.all()
+    
+   # Liste pour stocker les informations complètes
+    solutions_objectifs = []
+    
+    for solution in solutions:
+        # Convertir l'expression JSON 
+        expression = json.loads(solution.expression)
+        
+        # Préparer un dictionnaire avec toutes les informations
+        infos_solution = {
+            'id': solution.idSolution,  # ID de la solution
+            'statut': solution.statut,  # Statut de la solution
+            'objectifs': expression['objectifs']  # Objectifs de la solution
+        }
+        
+        solutions_objectifs.append(infos_solution)
+    
+    # Récupérer les noms des objectifs (en supposant qu'ils sont les mêmes pour toutes les solutions)
+    noms_objectifs = list(solutions_objectifs[0]['objectifs'].keys()) if solutions_objectifs else []
     
     return render(request, 'home.html', {
         'total_elements': total_elements,
@@ -31,6 +56,8 @@ def home(request):
         'total_criteres': total_criteres,
         'total_contraintes': total_contraintes,
         'solutions': solutions,
+        'noms_objectifs': noms_objectifs,
+        'solutions_objectifs': solutions_objectifs
         
     })
 def ressource(request):
@@ -943,7 +970,42 @@ def generate_population_view(request):
     contraintes = Contrainte.objects.filter(estAppliqueSolution=True).all()
     if request.method == 'POST':
         # Appelez votre fonction ici
-        population = evolution_genetique(taille_population, contraintes, generations=10, mutation_rate=0.1)
-        #population_optimisee = appliquer_recuit_sur_population(population, ensemble_possibilites, temperature_initiale=100, refroidissement=0.95, iterations=100)
+        population = hybride_genetique_recuit(taille_population, contraintes, generations_genetique=20, iterations_recuit=10)
+        stockerSolution(population)
+        print(f"taille: {len(population)}\n pop1 {population[0]}\n po2 {population[1]}")#population_optimisee = appliquer_recuit_sur_population(population, ensemble_possibilites, temperature_initiale=100, refroidissement=0.95, iterations=100)
         # Retourner un message de succès ou d'autres données si nécessaire
         return JsonResponse({'message': 'Population générée avec succès!', 'population': population})
+    
+    
+def stockerSolution(population):
+    """
+    Stocke une population de solutions dans la base de données
+    
+    Args:
+    - population: Liste de solutions générées par l'algorithme génétique/recuit
+    
+    Returns:
+    - Liste des solutions sauvegardées
+    """
+    solutions_sauvegardees = []
+    
+    for solution in population:
+        try:
+            # Convertir la solution en chaîne JSON pour le champ expression
+            expression_json = json.dumps({
+                'data': solution['data'],
+                'objectifs': solution['objectifs']
+            }, ensure_ascii=False)
+            
+            # Créer une nouvelle instance de Solution
+            nouvelle_solution = Solution.objects.create(
+                statut='propose',
+                expression=expression_json
+            )
+            
+            solutions_sauvegardees.append(nouvelle_solution)
+            
+            print(f"Solution {nouvelle_solution.idSolution} sauvegardée")
+        
+        except Exception as e:
+            print(f"Erreur lors de la sauvegarde d'une solution : {e}")

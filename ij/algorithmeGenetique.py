@@ -1,5 +1,6 @@
 from copy import deepcopy
 import json
+import math
 import random
 
 from ij.calcul import verifier_contraintes_solution
@@ -208,83 +209,75 @@ def selection_nsga2(population, nb_parents):
 
 
 #croisement
-def croisement(parent1, parent2):
+def croisement_intelligent(parent1, parent2, contraintes):
     """
-    Effectue un croisement entre deux parents pour créer un enfant.
+    Croisement qui préserve la structure et garantit la validité
     """
-    # Vérifier que les deux parents ont suffisamment d'éléments pour un croisement
-    if len(parent1['data']) < 2 or len(parent2['data']) < 2:
-        raise ValueError("Les parents doivent avoir plus d'un élément dans 'data' pour effectuer un croisement")
-    #print(f"avc1:{parent1}\n")
-    #print(f"avc2:{parent2}\n")
-    # Générer un point de croisement valide
-    point_croisement = random.randint(1, len(parent1['data']) - 1)
-
-    # Effectuer le croisement (exemple de logique simple, à adapter selon ton besoin)
-    enfant = {
-        'data': parent1['data'][:point_croisement] + parent2['data'][point_croisement:],
-        'objectifs': evaluer_fitness(parent1['data'][:point_croisement] + parent2['data'][point_croisement:], Objectif.objects.all())
-    }
-    #print(f"enfant: {enfant}")
-    return enfant
-
+    # Générer plusieurs points de croisement
+    nb_points = random.randint(1, min(len(parent1['data']) - 1, 3))
+    points = sorted(random.sample(range(1, len(parent1['data'])), nb_points))
+    
+    # Construire l'enfant avec segments alternés
+    enfant_data = []
+    source_parent = parent1
+    
+    for i in range(len(parent1['data'])):
+        if i in points:
+            # Alterner la source du parent
+            source_parent = parent2 if source_parent == parent1 else parent1
+        
+        enfant_data.append(source_parent['data'][i])
+    
+    # Vérifier les contraintes
+    if verifier_contraintes_solution(enfant_data, contraintes):
+        enfant = {
+            'data': enfant_data,
+            'objectifs': evaluer_fitness(enfant_data, Objectif.objects.all())
+        }
+        return enfant
+    
+    # Fallback : retourner un parent si les contraintes ne sont pas respectées
+    return random.choice([parent1, parent2])
 
 #mutation
-def mutation(solution, mutation_rate=0.1):
+def mutation_intelligente(solution, contraintes):
     """
-    Performs mutation on a given solution with a specified mutation rate,
-    while preserving the integrity of 'couplages' and avoiding duplicates.
-    Ensures that the full coupling key (e.g., 'c6_e5') is maintained.
+    Mutation qui préserve la structure et garantit la validité
     """
-    if 'data' not in solution:
-        raise ValueError("La solution doit contenir la clé 'data'")
+    # Copie profonde pour éviter les modifications directes
+    mutated_solution = deepcopy(solution)
     
-    # Sauvegarde de l'état initial de la solution
-    ancienne_solution = deepcopy(solution['data'])
+    # Récupérer tous les éléments disponibles
+    elements = list(Element.objects.all())
     
-    # Vérifier la structure des données
-    for elem in solution['data']:
-        if not isinstance(elem, dict) or 'couplage' not in elem:
-            raise TypeError(f"Un élément de 'data' n'est pas un dictionnaire valide: {elem}")
+    # Sélectionner un sous-ensemble d'éléments à muter
+    nb_mutations = max(1, int(len(mutated_solution['data']) * 0.2))  # Muter 20% des éléments
+    indices_mutation = random.sample(range(len(mutated_solution['data'])), nb_mutations)
     
-    # Appliquer la mutation sur les données
-    for i in range(len(solution['data'])):
-        if random.random() < mutation_rate:
-            # Sauvegarder le couplage original
-            ancienne_valeur_couplage = solution['data'][i]['couplage']
-            
-            # Extraire le préfixe de l'élément (c1, c2, etc.)
-            prefixe = ancienne_valeur_couplage.split('_')[0]
-            
-            # Choisir un nouvel élément qui correspond au même préfixe
-            elements_candidats = [
-                elem for elem in Element.objects.all() 
-                if elem.codeElement.startswith(prefixe)
-            ]
-            
-            if elements_candidats:
-                nouvel_element = random.choice(elements_candidats)
-                
-                # Mutation du couplage en gardant le même préfixe
-                solution['data'][i]['couplage'] = nouvel_element.codeElement
-                
-                # Vérification des doublons
-                seen = set()
-                doublon_detecte = False
-                for j in range(len(solution['data'])):
-                    if solution['data'][j]['couplage'] in seen:
-                        doublon_detecte = True
-                        break
-                    seen.add(solution['data'][j]['couplage'])
-                
-                # Restaurer la valeur précédente si un doublon est détecté
-                if doublon_detecte:
-                    solution['data'][i]['couplage'] = ancienne_valeur_couplage
+    for idx in indices_mutation:
+        # Filtrer les éléments candidats par contraintes
+        candidats = [
+            elem for elem in elements 
+            if elem.codeElement.startswith(mutated_solution['data'][idx]['couplage'].split('_')[0])
+        ]
+        
+        if candidats:
+            # Sélection aléatoire parmi les candidats valides
+            nouvel_element = random.choice(candidats)
+            mutated_solution['data'][idx]['couplage'] = nouvel_element.codeElement
     
-    # Recalculer les objectifs après mutation
-    solution['objectifs'] = evaluer_fitness(solution['data'], Objectif.objects.all())
+    # Vérifier et corriger les contraintes
+    if verifier_contraintes_solution(mutated_solution['data'], contraintes):
+        # Recalculer les objectifs
+        mutated_solution['objectifs'] = evaluer_fitness(
+            mutated_solution['data'], 
+            Objectif.objects.all()
+        )
+        return mutated_solution
     
+    # Retourner la solution originale si la mutation invalide les contraintes
     return solution
+
 
 def generer_nouvelle_population(population, nb_enfants, mutation_rate=0.1):
     nouvelle_population = []
@@ -311,31 +304,140 @@ def generer_nouvelle_population(population, nb_enfants, mutation_rate=0.1):
 
 
 #Boucle principale pour l'agorithme genetique
-def evolution_genetique(taille_population, contraintes, generations=10, mutation_rate=0.1):
-    # Générer la population initiale
-    population = generer_population_initiale(taille_population, contraintes)
-    print("popo generee")
-    print(len(population))
-
+def evolution_genetique(
+    taille_population, 
+    contraintes, 
+    generations=20, 
+    mutation_rate=0.2
+):
+    # Générer une population initiale plus diversifiée
+    population = generer_population_initiale(
+        taille_population * 2,  # Plus de candidats initiaux
+        contraintes
+    )[:taille_population]
+    
+    # Historique pour suivre la diversité
+    historique_diversite = []
+    
     for generation in range(generations):
-        print(f"===== Génération {generation + 1}  =====")
-
-        # Sélection des parents avec NSGA-II
-        nb_parents = min(2, len(population))  # Nombre de parents à sélectionner
-        parents = selection_nsga2(population, nb_parents)
-        #print(f"p1:{population[1]}\n")
-
-        # Génération d'une nouvelle population
-        nouvelle_population = generer_nouvelle_population(parents, taille_population, mutation_rate)
-
-        # Mise à jour de la population
+        print(f"===== Génération {generation + 1} =====")
+        
+        # Sélection des meilleurs et des plus diversifiés
+        nouvelle_population = []
+        
+        # Tri non dominé pour identifier les fronts de Pareto
+        fronts = non_dominated_sort(population)
+        
+        # Sélectionner des solutions à partir des premiers fronts
+        for front in fronts:
+            front_solutions = [population[i] for i in front]
+            
+            # Ajouter des solutions jusqu'à atteindre la taille de population
+            while len(nouvelle_population) < taille_population and front_solutions:
+                # Sélection aléatoire pondérée
+                solution = random.choice(front_solutions)
+                front_solutions.remove(solution)
+                nouvelle_population.append(solution)
+        
+        # Générer de nouveaux individus par croisement et mutation
+        while len(nouvelle_population) < taille_population:
+            # Sélection des parents
+            parent1, parent2 = random.sample(population, 2)
+            
+            # Croisement
+            enfant = croisement_intelligent(parent1, parent2, contraintes)
+            
+            # Mutation conditionnelle
+            if random.random() < mutation_rate:
+                enfant = mutation_intelligente(enfant, contraintes)
+            
+            nouvelle_population.append(enfant)
+        
+        # Mettre à jour la population
         population = nouvelle_population
-        print(f"Population mise à jour: {len(population)} individus")
+        
+        # Calculer et suivre la diversité
+        diversite = len(set(tuple(sorted(p['objectifs'].items())) for p in population))
+        historique_diversite.append(diversite)
+        print(f"Diversité des objectifs : {diversite}")
+    
+    # Optionnel : tracer l'évolution de la diversité
+    # plot_diversite(historique_diversite)
     print(f"pop1: {population[1]}\n")
-    print(f"pop10:{population[5]}\n")
-    print(f"pop9:{population[9]}")
-
-    print("Évolution terminée.")
+    print(f"pop2: {population[2]}\n")
+    print(f"pop3: {population[3]}\n")
     return population
 
 
+def croisement_multipoint(parent1, parent2):
+    """
+    Croisement multi-points pour plus de diversité
+    """
+    points_croisement = sorted(
+        random.sample(range(1, len(parent1['data'])), 2)
+    )
+    
+    enfant1 = {
+        'data': (
+            parent1['data'][:points_croisement[0]] + 
+            parent2['data'][points_croisement[0]:points_croisement[1]] + 
+            parent1['data'][points_croisement[1]:]
+        ),
+        'objectifs': None  # Sera calculé après
+    }
+    
+    enfant1['objectifs'] = evaluer_fitness(
+        enfant1['data'], 
+        Objectif.objects.all()
+    )
+    
+    return enfant1
+def selection_nsga2_avec_diversite(population, nb_parents):
+    """
+    Sélection avec préservation de la diversité
+    Gère les cas de distances de crowding problématiques
+    """
+    fronts = non_dominated_sort(population)
+    selected_parents = []
+    
+    for front in fronts:
+        if len(selected_parents) + len(front) <= nb_parents:
+            # Ajouter des éléments aléatoires du front pour diversité
+            random.shuffle(front)
+            selected_parents.extend(front)
+        else:
+            # Sélection aléatoire pondérée avec gestion des poids
+            distances = crowding_distance(front, population)
+            
+            # Nettoyer et normaliser les distances
+            cleaned_distances = []
+            for i in front:
+                dist = distances[i]
+                # Convertir les valeurs infinies ou NaN en grande valeur
+                if dist == float('inf') or math.isnan(dist):
+                    cleaned_distances.append(1000)  # Grande valeur constante
+                else:
+                    cleaned_distances.append(max(dist, 0.001))  # Éviter les zéros
+            
+            # Normaliser les poids
+            total_weight = sum(cleaned_distances)
+            probabilities = [d / total_weight for d in cleaned_distances]
+            
+            try:
+                selected = random.choices(
+                    front, 
+                    weights=probabilities, 
+                    k=nb_parents - len(selected_parents)
+                )
+                selected_parents.extend(selected)
+            except ValueError:
+                # Fallback: sélection aléatoire si problème de poids
+                selected = random.sample(
+                    front, 
+                    k=nb_parents - len(selected_parents)
+                )
+                selected_parents.extend(selected)
+            
+            break
+
+    return [population[i] for i in selected_parents]

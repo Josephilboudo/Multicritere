@@ -74,8 +74,7 @@ class Objectif(models.Model):
 class Solution(models.Model):
     idSolution = models.AutoField(primary_key=True)
     statut = models.TextField()
-    couplages = models.ManyToManyField(Couplage, related_name="solutions")
-    solution = models.ManyToManyField(Objectif, related_name="solutions")
+    expression = models.TextField()
     
     def __str__(self):
         return self.statut
