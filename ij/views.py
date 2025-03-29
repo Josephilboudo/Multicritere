@@ -3,7 +3,7 @@ from django import template
 from django.conf import settings
 from django.db import IntegrityError, connections
 from django.shortcuts import redirect, render, get_object_or_404
-from django.http import JsonResponse
+from django.http import HttpResponse, JsonResponse
 import json
 import csv
 from django.contrib import messages
@@ -11,6 +11,9 @@ from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.core.files.storage import default_storage
 import pandas as pd
+from django.template.loader import render_to_string
+from weasyprint import HTML
+import tempfile
 
 from ij.algorithmeGenetique import evolution_genetique, generer_population_initiale
 from ij.algorithmeRS import hybride_genetique_recuit
@@ -1009,3 +1012,115 @@ def stockerSolution(population):
         
         except Exception as e:
             print(f"Erreur lors de la sauvegarde d'une solution : {e}")
+            
+            
+def solution_details(request, solution_id):
+    try:
+        solution = Solution.objects.get(idSolution=solution_id)
+        expression = json.loads(solution.expression)  # Charger l'expression JSON
+        
+        # Récupérer les données stockées
+        data = []
+        for item in expression['data']:
+            couplage_id = item['couplage']
+            try:
+                couplage = Couplage.objects.get(id=couplage_id)
+                element_nom = couplage.element.description  # Récupérer le nom de l'élément
+                ressource_nom = couplage.ressource.description  # Récupérer le nom de la ressource
+            except Couplage.DoesNotExist:
+                element_nom = "Inconnu"
+                ressource_nom = "Inconnu"
+
+            # Convertir la valeur en JSON
+            valeurs = json.loads(item['valeur'])
+
+            # Construire la ligne du tableau
+            row = {
+                "element": element_nom,
+                "ressource": ressource_nom,
+                **valeurs
+            }
+            data.append(row)
+
+        return JsonResponse({
+            "id": solution.idSolution,
+            "statut": solution.statut,
+            "objectifs": expression["objectifs"],
+            "data": data
+        })
+    
+    except Solution.DoesNotExist:
+        return JsonResponse({"error": "Solution non trouvée"}, status=404)
+    
+def generate_pdf(request, solution_id):
+    # Récupérer la solution depuis la base de données
+    solution = Solution.objects.get(idSolution=solution_id)
+    expression = json.loads(solution.expression)  # Convertir le JSON
+    
+    # Récupérer les données formatées
+    data = expression['data']
+    objectifs = expression['objectifs']
+    
+    # Récupérer les noms des objectifs
+    noms_objectifs = list(objectifs.keys()) if objectifs else []
+
+    # Récupérer les informations sur les couplages
+    for item in data:
+        couplage = Couplage.objects.get(id=item['couplage'])  # Trouver le couplage
+        item['element'] = couplage.element.description  # Ajouter l'élément
+        item['ressource'] = couplage.ressource.description  # Ajouter la ressource
+        item['valeur'] = json.loads(item['valeur'])  # Convertir le JSON en dict
+
+    # Générer le HTML à partir du template
+    html_string = render_to_string('solution_pdf.html', {
+        'solution': solution,
+        'data': data,
+        'objectifs': objectifs,
+        'noms_objectifs': noms_objectifs
+    })
+    print("jojo")
+    print(html_string)
+    # Générer le PDF
+    response = HttpResponse(content_type='application/pdf')
+    response['Content-Disposition'] = f'attachment; filename="solution_{solution_id}.pdf"'
+    
+    with tempfile.NamedTemporaryFile(delete=True) as temp:
+        HTML(string=html_string).write_pdf(temp.name)
+        temp.seek(0)
+        response.write(temp.read())
+
+    return response  
+    
+def first_three_solutions_data(request):
+    print("vue appelee")
+    solutions = Solution.objects.all()[:3]  # Récupérer les 3 premières solutions
+    data = []
+
+    for solution in solutions:
+        expression = json.loads(solution.expression)  # Charger l'expression JSON
+        solution_data = {
+            "id": solution.idSolution,
+            "statut": solution.statut,
+            "objectifs": expression["objectifs"],
+            "data": []
+        }
+
+        for item in expression["data"]:
+            couplage_id = item["couplage"]
+            try:
+                element_nom = Couplage.objects.get(id=couplage_id).element.description
+            except Couplage.DoesNotExist:
+                element_nom = "Inconnu"
+
+            valeurs = {k: v if v is not None else 0 for k, v in json.loads(item["valeur"]).items()}
+            solution_data["data"].append({"element": element_nom, **valeurs})
+        print(data)
+        data.append(solution_data)
+
+    return JsonResponse(data, safe=False)  
+    
+    
+    
+    
+    
+    

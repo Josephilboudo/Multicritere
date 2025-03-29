@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Solution PDF</title>
+    <style>
+        /* Styles de base */
+        body {
+            font-family: 'Helvetica', 'Arial', sans-serif;
+            margin: 0;
+            padding: 0;
+            color: #333;
+            line-height: 1.5;
+            width: 100%;
+        }
+        
+        .container {
+            padding: 15px;
+            width: 100%;
+            box-sizing: border-box;
+        }
+        
+        /* En-tête */
+        .header {
+            border-bottom: 2px solid #0066cc;
+            padding-bottom: 10px;
+            margin-bottom: 20px;
+        }
+        
+        h1 {
+            color: #0066cc;
+            text-align: center;
+            font-size: 24px;
+            margin-bottom: 5px;
+        }
+        
+        /* Statut */
+        .statut {
+            background-color: #f8f9fa;
+            border-left: 4px solid #0066cc;
+            padding: 10px;
+            margin-bottom: 20px;
+        }
+        
+        .statut h2 {
+            margin-top: 0;
+            font-size: 18px;
+            display: inline-block;
+            margin-right: 10px;
+        }
+        
+        .statut-valeur {
+            display: inline-block;
+            font-weight: bold;
+            padding: 3px 10px;
+            border-radius: 15px;
+            background-color: #e6f0ff;
+        }
+        
+        /* Objectifs */
+        .objectifs {
+            margin-bottom: 30px;
+        }
+        
+        .objectifs h2 {
+            color: #0066cc;
+            font-size: 18px;
+            border-bottom: 1px solid #ddd;
+            padding-bottom: 5px;
+        }
+        
+        .objectifs ul {
+            list-style-type: none;
+            padding-left: 0;
+        }
+        
+        .objectifs li {
+            padding: 8px 0;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .objectifs strong {
+            color: #444;
+        }
+        
+        /* Tableau */
+        .tableau-section {
+            width: 100%;
+            margin-bottom: 30px;
+        }
+        
+        .tableau-container {
+            width: 100%;
+            overflow-x: visible;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+            box-shadow: 0 2px 3px rgba(0, 0, 0, 0.1);
+            table-layout: auto; /* Changé de fixed à auto pour adapter dynamiquement */
+        }
+        
+        th {
+            background-color: #0066cc;
+            color: white;
+            padding: 8px 6px;
+            text-align: left;
+            font-weight: normal;
+            word-wrap: break-word;
+            white-space: normal;
+            font-size: 11px;
+            min-width: 70px; /* Largeur minimale pour assurer la visibilité */
+        }
+        
+        td {
+            border-bottom: 1px solid #ddd;
+            padding: 6px;
+            text-align: left;
+            word-wrap: break-word;
+            font-size: 11px;
+            min-width: 70px; /* Largeur minimale pour assurer la visibilité */
+        }
+        
+        tr:nth-child(even) {
+            background-color: #f8f9fa;
+        }
+        
+        tr:hover {
+            background-color: #e6f0ff;
+        }
+        
+        /* Pied de page */
+        .footer {
+            margin-top: 30px;
+            text-align: center;
+            font-size: 11px;
+            color: #666;
+            border-top: 1px solid #ddd;
+            padding-top: 10px;
+        }
+        
+        /* Mise en page orientation paysage pour PDF */
+        @page {
+            size: landscape;
+            margin: 8mm;
+        }
+        
+        @media print {
+            body {
+                margin: 0;
+                padding: 0;
+                width: 100%;
+            }
+            
+            .container {
+                padding: 8px;
+                width: 100%;
+            }
+            
+            .tableau-container {
+                width: 100%;
+                margin: 0;
+                padding: 0;
+            }
+            
+            table {
+                width: 100%;
+                page-break-inside: auto;
+                font-size: 9px;
+            }
+            
+            tr {
+                page-break-inside: avoid;
+                page-break-after: auto;
+            }
+            
+            th, td {
+                font-size: 9px;
+                padding: 4px;
+                min-width: 50px;
+            }
+            
+            h1 {
+                font-size: 16px;
+            }
+            
+            h2 {
+                font-size: 14px;
+            }
+            
+            .no-print {
+                display: none;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Solution {{ solution.idSolution }}</h1>
+        </div>
+        
+        <div class="statut">
+            <h2>Statut:</h2>
+            <span class="statut-valeur">{{solution.statut}}</span>
+        </div>
+        
+        <div class="objectifs">
+            <h2>Objectifs</h2>
+            <ul>
+                {% for nom, valeur in objectifs.items %}
+                    <li><strong>{{ nom }}:</strong> {{ valeur }}</li>
+                {% endfor %}
+            </ul>
+        </div>
+        
+        <div class="tableau-section">
+            <h2>Détails des Ressources et Éléments</h2>
+            <div class="tableau-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <!-- Pas de largeurs fixes pour permettre l'adaptation naturelle -->
+                            <th>Élément</th>
+                            <th>Ressource</th>
+                            {% for nom in noms_objectifs %}
+                                <th>{{ nom }}</th>
+                            {% endfor %}
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in data %}
+                            <tr>
+                                <td>{{ item.element }}</td>
+                                <td>{{ item.ressource }}</td>
+                                {% for valeur in item.valeur.values %}
+                                    <td>{{ valeur }}</td>
+                                {% endfor %}
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        
+        <div class="footer">
+            Document généré le {% now "d/m/Y à H:i" %}
+        </div>
+    </div>
+</body>
+</html>

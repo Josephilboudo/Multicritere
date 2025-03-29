@@ -19,7 +19,7 @@ from django.contrib import admin
 from django.urls import include, path
 
 from ij.calcul import calculer_cout_view, generer_couplages_view, verifier_contraintes
-from .views import add_objectif, connect_database, delete_contrainte, connect_to_external_db, generate_population_view,save_contrainte, contrainte, crit, delete_couplage, delete_critere, delete_objectif, objectif,delete_element, delete_ressource, element_list, execute_join, get_columns, get_couplage_json, get_critere_json, get_ressource_json, get_table_columns, get_tables, home, element, couplage, import_data, import_dataCouplage, ressource, critere, save_couplage, save_critere, save_element, get_elements_json, import_elements, import_dataRessource, save_ressource
+from .views import add_objectif, connect_database, delete_contrainte, connect_to_external_db, first_three_solutions_data, generate_pdf, generate_population_view,save_contrainte, contrainte, crit, delete_couplage, delete_critere, delete_objectif, objectif,delete_element, delete_ressource, element_list, execute_join, get_columns, get_couplage_json, get_critere_json, get_ressource_json, get_table_columns, get_tables, home, element, couplage, import_data, import_dataCouplage, ressource, critere, save_couplage, save_critere, save_element, get_elements_json, import_elements, import_dataRessource, save_ressource, solution_details
 
 urlpatterns = [
     path('admin/', admin.site.urls),
@@ -97,5 +97,14 @@ urlpatterns = [
     
     #generer populaion
     path('generer-population/', generate_population_view, name='generer_population'),
+    
+    
+    #consulter une solution
+    path('solution-details/<int:solution_id>/', solution_details, name='solution_details'),
+    
+    #Generation du pdf
+    path('solution-pdf/<int:solution_id>/', generate_pdf, name='solution_pdf'),
+    
+    path('graph-solutions-data/', first_three_solutions_data, name='graph-solutions-data'),
 
 ]
