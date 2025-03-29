@@ -1,3 +1,4 @@
+{% load custom_filters %}
 <!DOCTYPE html>
 <html lang="fr">
 <head>
@@ -99,7 +100,7 @@
             border-collapse: collapse;
             margin-top: 20px;
             box-shadow: 0 2px 3px rgba(0, 0, 0, 0.1);
-            table-layout: auto; /* Changé de fixed à auto pour adapter dynamiquement */
+            table-layout: auto; /* Permet une largeur dynamique */
         }
         
         th {
@@ -222,10 +223,9 @@
                 <table>
                     <thead>
                         <tr>
-                            <!-- Pas de largeurs fixes pour permettre l'adaptation naturelle -->
                             <th>Élément</th>
                             <th>Ressource</th>
-                            {% for nom in noms_objectifs %}
+                            {% for nom in noms_attributs %}
                                 <th>{{ nom }}</th>
                             {% endfor %}
                         </tr>
@@ -235,8 +235,14 @@
                             <tr>
                                 <td>{{ item.element }}</td>
                                 <td>{{ item.ressource }}</td>
-                                {% for valeur in item.valeur.values %}
-                                    <td>{{ valeur }}</td>
+                                {% for nom in noms_attributs %}
+                                    <td>
+                                        {% if item.valeurs|get_item:nom != None %}
+                                            {{ item.valeurs|get_item:nom }}
+                                        {% else %}
+                                            -
+                                        {% endif %}
+                                    </td>
                                 {% endfor %}
                             </tr>
                         {% endfor %}

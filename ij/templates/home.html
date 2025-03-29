@@ -218,22 +218,7 @@
           </div>
           <div class="row">
             <div class="col-md-6 grid-margin stretch-card">
-              <div class="card tale-bg">
-                <div class="card-people mt-auto">
-                  <img src="{% static 'images/dashboard/people.svg' %}" alt="people">
-                   <div class="weather-info">
-                    <div class="d-flex">
-                      <div>
-                        <h2 class="mb-0 font-weight-normal"><i class="icon-sun mr-2"></i>31<sup>C</sup></h2>
-                      </div>
-                      <div class="ml-2">
-                        <h4 class="location font-weight-normal">Bangalore</h4>
-                        <h6 class="font-weight-normal">India</h6>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
+                  <canvas id="performanceChart"></canvas>
             </div>
             <div class="col-md-6 grid-margin transparent">
               <div class="row">
@@ -276,7 +261,7 @@
           </div>
           <div class="row">
         
-            <canvas id="solutionsChart"></canvas>
+            
             <div class="row">
               <div class="col-md-12 grid-margin stretch-card">
                   <div class="card">
@@ -346,8 +331,7 @@
               </table>
           </div>
           <div class="modal-footer">
-            <a id="downloadPdfBtn" href="#" class="btn btn-danger">Télécharger en PDF</a>
-            <button type="button" class="btn btn-danger" id="closeModalButton">Fermer</button>
+            <a id="downloadPdfBtn" href="#" class="btn btn-primary"><i class="fas fa-download"></i></a>
           </div>
       </div>
   </div>
@@ -700,57 +684,52 @@ function openModal(solutionId) {
 }
 </script>
 <!--pour le graphe-->
-    <script>
-      async function fetchData() {
-        try {
-            const response = await fetch('/graph-solutions-data/');
-            const solutions = await response.json();
-    
-            console.log(solutions);  // Ajoute ce log pour vérifier les données
-    
-            const labels = [];
-            const datasets = [];
-    
-            solutions.forEach((solution, index) => {
-                solution.data.forEach(entry => {
-                    if (!labels.includes(entry.element)) {
-                        labels.push(entry.element);
-                    }
-                });
-    
-                datasets.push({
-                    label: `Solution ${index + 1}`,
-                    data: solution.data.map(entry => {
-                        if (Array.isArray(entry.objectifs)) {
-                            return entry.objectifs.reduce((a, b) => a + b, 0);
-                        } else {
-                            return 0;  // Valeur par défaut si "objectifs" est manquant
-                        }
-                    }),
-                    backgroundColor: `rgba(${Math.random()*255}, ${Math.random()*255}, ${Math.random()*255}, 0.6)`
-                });
-            });
-    
-            const ctx = document.getElementById('solutionsChart').getContext('2d');
-            new Chart(ctx, {
-                type: 'bar',
-                data: {
-                    labels: labels,
-                    datasets: datasets
-                },
-                options: {
-                    responsive: true,
-                    plugins: {
-                        legend: { position: 'top' },
-                        title: { display: true, text: 'Comparaison des 3 premières solutions' }
-                    }
-                }
-            });
-        } catch (error) {
-            console.error('Error fetching data:', error);
-        }
-    }
-    fetchData();
+      <script>
+        async function fetchData() {
+          const response = await fetch('/graph-solutions-data/');
+          const data = await response.json();
+      
+          console.log("Données reçues :", data); // Debugging
+      
+          if (!data.solutions || data.solutions.length === 0) {
+              console.error("Aucune solution disponible !");
+              return;
+          }
+      
+          // Extraire les noms des objectifs (compétence, charge Travaille)
+          const labels = Object.keys(data.solutions[0].objectifs);  
+      
+          // Construire les datasets
+          const datasets = data.solutions.map((solution, index) => ({
+              label: `Solution ${solution.id}`,
+              data: labels.map(obj => solution.objectifs[obj]), // Récupère les valeurs des objectifs
+              backgroundColor: `rgba(${Math.random()*255}, ${Math.random()*255}, ${Math.random()*255}, 0.6)`
+          }));
+      
+          // Affichage du graphique
+          const ctx = document.getElementById('performanceChart').getContext('2d');
+          new Chart(ctx, {
+              type: 'bar',
+              data: {
+                  labels: labels,  // ["compétence", "charge Travaille"]
+                  datasets: datasets
+              },
+              options: {
+                  responsive: true,
+                  scales: {
+                      y: { beginAtZero: false }  // Permet les valeurs négatives
+                  },
+                  plugins: {
+                      legend: { position: 'top' },
+                      title: { display: true, text: 'Comparaison des solutions' }
+                  }
+              }
+          });
+      }
+      
+      // Appel de la fonction pour charger les données et afficher le graphique
+      fetchData();
+             
     </script>
 </body>
 

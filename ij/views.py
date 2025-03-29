@@ -1053,74 +1053,79 @@ def solution_details(request, solution_id):
         return JsonResponse({"error": "Solution non trouvée"}, status=404)
     
 def generate_pdf(request, solution_id):
-    # Récupérer la solution depuis la base de données
-    solution = Solution.objects.get(idSolution=solution_id)
-    expression = json.loads(solution.expression)  # Convertir le JSON
-    
-    # Récupérer les données formatées
-    data = expression['data']
-    objectifs = expression['objectifs']
-    
-    # Récupérer les noms des objectifs
-    noms_objectifs = list(objectifs.keys()) if objectifs else []
-
-    # Récupérer les informations sur les couplages
-    for item in data:
-        couplage = Couplage.objects.get(id=item['couplage'])  # Trouver le couplage
-        item['element'] = couplage.element.description  # Ajouter l'élément
-        item['ressource'] = couplage.ressource.description  # Ajouter la ressource
-        item['valeur'] = json.loads(item['valeur'])  # Convertir le JSON en dict
-
-    # Générer le HTML à partir du template
-    html_string = render_to_string('solution_pdf.html', {
-        'solution': solution,
-        'data': data,
-        'objectifs': objectifs,
-        'noms_objectifs': noms_objectifs
-    })
-    print("jojo")
-    print(html_string)
-    # Générer le PDF
-    response = HttpResponse(content_type='application/pdf')
-    response['Content-Disposition'] = f'attachment; filename="solution_{solution_id}.pdf"'
-    
-    with tempfile.NamedTemporaryFile(delete=True) as temp:
-        HTML(string=html_string).write_pdf(temp.name)
-        temp.seek(0)
-        response.write(temp.read())
-
-    return response  
-    
-def first_three_solutions_data(request):
-    print("vue appelee")
-    solutions = Solution.objects.all()[:3]  # Récupérer les 3 premières solutions
-    data = []
-
-    for solution in solutions:
-        expression = json.loads(solution.expression)  # Charger l'expression JSON
-        solution_data = {
-            "id": solution.idSolution,
-            "statut": solution.statut,
-            "objectifs": expression["objectifs"],
-            "data": []
-        }
-
-        for item in expression["data"]:
-            couplage_id = item["couplage"]
+        solution = Solution.objects.get(idSolution=solution_id)
+        expression = json.loads(solution.expression)
+        
+        # Préparation des données
+        data = []
+        
+        # Ensemble pour stocker tous les noms d'attributs uniques
+        tous_noms_attributs = set()
+        
+        # Première passe pour collecter tous les noms d'attributs
+        for item in expression['data']:
+            valeurs = json.loads(item['valeur'])
+            # Ajouter chaque clé à l'ensemble des noms d'attributs
+            for cle in valeurs.keys():
+                tous_noms_attributs.add(cle)
+        
+        # Convertir l'ensemble en liste pour l'ordre
+        noms_attributs = sorted(list(tous_noms_attributs))
+        
+        # Seconde passe pour collecter les données
+        for item in expression['data']:
+            couplage_id = item['couplage']
             try:
-                element_nom = Couplage.objects.get(id=couplage_id).element.description
+                couplage = Couplage.objects.get(id=couplage_id)
+                element_nom = couplage.element.description
+                ressource_nom = couplage.ressource.description
             except Couplage.DoesNotExist:
                 element_nom = "Inconnu"
-
-            valeurs = {k: v if v is not None else 0 for k, v in json.loads(item["valeur"]).items()}
-            solution_data["data"].append({"element": element_nom, **valeurs})
-        print(data)
-        data.append(solution_data)
-
-    return JsonResponse(data, safe=False)  
+                ressource_nom = "Inconnu"
+            
+            valeurs = json.loads(item['valeur'])
+            
+            data.append({
+                "element": element_nom,
+                "ressource": ressource_nom,
+                "valeurs": valeurs
+            })
+        
+        # Récupération des objectifs pour comparaison si nécessaire
+        objectifs = expression.get("objectifs", {})
+        
+        # Génération du HTML
+        html_string = render_to_string('solution_pdf.html', {
+            'solution': solution,
+            'data': data,
+            'noms_attributs': noms_attributs,  # Tous les noms d'attributs extraits de valeurs
+            'objectifs': objectifs
+        })
+        
+        # Création du PDF
+        response = HttpResponse(content_type='application/pdf')
+        response['Content-Disposition'] = f'attachment; filename="solution_{solution_id}.pdf"'
+        
+        HTML(string=html_string).write_pdf(response)
+        return response
+def first_three_solutions_data(request):
+    try:
+        # Récupérer les 3 premières solutions
+        solutions = Solution.objects.all()[:3]
+        
+        result = []  # Tableau des solutions
+        
+        for solution in solutions:
+            expression = json.loads(solution.expression)  # Charger l'expression JSON
+            objectifs = expression.get("objectifs", [])  # Objectifs globaux
+            
+            result.append({
+                "id": solution.idSolution,
+                "objectifs": objectifs  # On ne met que les objectifs, pas les éléments
+            })
+        
+        # Renvoie un tableau de solutions
+        return JsonResponse({"solutions": result}, safe=False)  # safe=False permet de renvoyer un tableau brut
     
-    
-    
-    
-    
-    
+    except Exception as e:
+        return JsonResponse({"error": str(e)}, status=500)
