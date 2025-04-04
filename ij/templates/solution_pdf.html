@@ -237,10 +237,18 @@
                                 <td>{{ item.ressource }}</td>
                                 {% for nom in noms_attributs %}
                                     <td>
-                                        {% if item.valeurs|get_item:nom != None %}
-                                            {{ item.valeurs|get_item:nom }}
+                                        {% if item.valeurs %}
+                                            {% if item.valeurs|get_item:nom %}
+                                                {{ item.valeurs|get_item:nom }}
+                                            {% else %}
+                                                Non affecté
+                                            {% endif %}
                                         {% else %}
-                                            -
+                                            {% if item.element == "Inconnu" %}
+                                                {{ item.element }}
+                                            {% else %}
+                                                Non affecté
+                                            {% endif %}
                                         {% endif %}
                                     </td>
                                 {% endfor %}
@@ -248,6 +256,7 @@
                         {% endfor %}
                     </tbody>
                 </table>
+                                
             </div>
         </div>
         

@@ -1014,25 +1014,58 @@ def stockerSolution(population):
             print(f"Erreur lors de la sauvegarde d'une solution : {e}")
             
             
+
 def solution_details(request, solution_id):
     try:
+        # Récupération de la solution
         solution = Solution.objects.get(idSolution=solution_id)
-        expression = json.loads(solution.expression)  # Charger l'expression JSON
         
-        # Récupérer les données stockées
-        data = []
-        for item in expression['data']:
-            couplage_id = item['couplage']
-            try:
-                couplage = Couplage.objects.get(id=couplage_id)
-                element_nom = couplage.element.description  # Récupérer le nom de l'élément
-                ressource_nom = couplage.ressource.description  # Récupérer le nom de la ressource
-            except Couplage.DoesNotExist:
-                element_nom = "Inconnu"
-                ressource_nom = "Inconnu"
+        # Vérification et conversion de l'expression JSON
+        try:
+            expression = json.loads(solution.expression)  # Charger l'expression JSON
+        except json.JSONDecodeError:
+            return JsonResponse({"error": "Expression JSON invalide"}, status=400)
 
-            # Convertir la valeur en JSON
-            valeurs = json.loads(item['valeur'])
+        data = []
+        
+        # Vérification que 'data' est une liste
+        if not isinstance(expression.get('data'), list):
+            return JsonResponse({"error": "Format incorrect : 'data' doit être une liste"}, status=400)
+
+        for item in expression['data']:
+            if isinstance(item, str):
+                try:
+                    item = json.loads(item)  # Convertir la chaîne JSON en dictionnaire
+                except json.JSONDecodeError:
+                    # Si item est une chaîne non JSON, on suppose que c'est un codeElement
+                    try:
+                        element = Element.objects.get(codeElement=item)  # Utilisation de codeElement
+                        item = {"couplage": "Non affecté", "valeur": "{}", "element": element.description}
+                    except Element.DoesNotExist:
+                        item = {"couplage": "Non affecté", "valeur": "{}", "element": "Inconnu"}
+
+            if not isinstance(item, dict):
+                return JsonResponse({"error": f"Format incorrect : item doit être un dictionnaire, reçu {type(item)}"}, status=400)
+
+            # Récupérer le couplage
+            couplage_id = item.get('couplage')
+            if couplage_id == "Non affecté":
+                element_nom = item.get("element", "Non affecté")  # Garder l'élément s'il existe
+                ressource_nom = "Non affecté"
+            else:
+                try:
+                    couplage = Couplage.objects.get(id=couplage_id)
+                    element_nom = couplage.element.description  # Nom de l'élément
+                    ressource_nom = couplage.ressource.description  # Nom de la ressource
+                except Couplage.DoesNotExist:
+                    element_nom = "Inconnu"
+                    ressource_nom = "Non affecté"
+
+            # Récupérer et convertir la valeur
+            try:
+                valeurs = json.loads(item.get('valeur', '{}'))  # Par défaut un dictionnaire vide
+            except json.JSONDecodeError:
+                valeurs = {}  # En cas d'erreur, on met un dictionnaire vide
 
             # Construire la ligne du tableau
             row = {
@@ -1045,69 +1078,166 @@ def solution_details(request, solution_id):
         return JsonResponse({
             "id": solution.idSolution,
             "statut": solution.statut,
-            "objectifs": expression["objectifs"],
+            "objectifs": expression.get("objectifs", []),
             "data": data
         })
-    
+
     except Solution.DoesNotExist:
         return JsonResponse({"error": "Solution non trouvée"}, status=404)
-    
+
+    except Exception as e:
+        return JsonResponse({"error": f"Erreur serveur : {str(e)}"}, status=500)     
+
+
+
 def generate_pdf(request, solution_id):
+    try:
+        # Récupérer la solution
         solution = Solution.objects.get(idSolution=solution_id)
         expression = json.loads(solution.expression)
-        
+
         # Préparation des données
         data = []
         
         # Ensemble pour stocker tous les noms d'attributs uniques
         tous_noms_attributs = set()
-        
+
         # Première passe pour collecter tous les noms d'attributs
-        for item in expression['data']:
-            valeurs = json.loads(item['valeur'])
-            # Ajouter chaque clé à l'ensemble des noms d'attributs
-            for cle in valeurs.keys():
-                tous_noms_attributs.add(cle)
-        
+        if 'data' in expression and isinstance(expression['data'], list):
+            for item in expression['data']:
+                # Si l'item est une chaîne, on ignore pour cette première passe
+                if not isinstance(item, dict):
+                    continue
+
+                # Traitement de la valeur pour collecter les attributs
+                if 'valeur' in item:
+                    valeur = item['valeur']
+                    if isinstance(valeur, str):
+                        try:
+                            # Essayer de parser comme JSON
+                            valeurs_dict = json.loads(valeur)
+                            if isinstance(valeurs_dict, dict):
+                                for cle in valeurs_dict.keys():
+                                    tous_noms_attributs.add(cle)
+                        except json.JSONDecodeError:
+                            # Si c'est juste un code élément (non affecté)
+                            tous_noms_attributs.add("status")
+                            tous_noms_attributs.add("codeElement")
+                    elif isinstance(valeur, dict):
+                        for cle in valeur.keys():
+                            tous_noms_attributs.add(cle)
+                    else:
+                        tous_noms_attributs.add("status")
+
         # Convertir l'ensemble en liste pour l'ordre
         noms_attributs = sorted(list(tous_noms_attributs))
-        
+
         # Seconde passe pour collecter les données
-        for item in expression['data']:
-            couplage_id = item['couplage']
-            try:
-                couplage = Couplage.objects.get(id=couplage_id)
-                element_nom = couplage.element.description
-                ressource_nom = couplage.ressource.description
-            except Couplage.DoesNotExist:
-                element_nom = "Inconnu"
+        if 'data' in expression and isinstance(expression['data'], list):
+            for item in expression['data']:
+                # Initialisation des valeurs par défaut
+                element_code = "Inconnu"
                 ressource_nom = "Inconnu"
-            
-            valeurs = json.loads(item['valeur'])
-            
-            data.append({
-                "element": element_nom,
-                "ressource": ressource_nom,
-                "valeurs": valeurs
-            })
-        
+                element_description = "Non affecté"
+                valeurs = {"status": "non affecté"}
+                
+                # Traitement différent selon le type de l'item
+                if isinstance(item, str):
+                    # Si l'item est juste une chaîne, c'est probablement un code élément
+                    code_element = item
+                    valeurs = {"status": "non affecté", "codeElement": code_element}
+                    
+                    # Récupérer la description de l'élément à partir du code
+                    try:
+                        element_obj = Element.objects.get(codeElement=code_element)
+                        element_description = element_obj.description
+                        element_code = code_element
+                    except Element.DoesNotExist:
+                        element_description = "Élément non trouvé"
+                
+                elif isinstance(item, dict):
+                    # Traitement du couplage
+                    if 'couplage' in item:
+                        couplage_id = item['couplage']
+                        try:
+                            couplage = Couplage.objects.get(id=couplage_id)
+                            element_code = couplage.element.codeElement
+                            ressource_nom = couplage.ressource.description
+                        except Couplage.DoesNotExist:
+                            pass
+                    
+                    # Traitement de la valeur
+                    if 'valeur' in item:
+                        valeur = item['valeur']
+                        if isinstance(valeur, str):
+                            try:
+                                # Essayer de parser comme JSON
+                                valeurs_dict = json.loads(valeur)
+                                if isinstance(valeurs_dict, dict):
+                                    valeurs = valeurs_dict
+                                    
+                                    # Remplacer les valeurs null par "-"
+                                    for key in valeurs:
+                                        if valeurs[key] is None:
+                                            valeurs[key] = "-"
+                            except json.JSONDecodeError:
+                                # Si ce n'est pas un JSON valide, c'est probablement juste le code de l'élément
+                                code_element = valeur
+                                valeurs = {"status": "non affecté", "codeElement": code_element}
+                                
+                                # Récupérer la description de l'élément à partir du code
+                                try:
+                                    element_obj = Element.objects.get(codeElement=code_element)
+                                    element_description = element_obj.description
+                                    element_code = code_element
+                                except Element.DoesNotExist:
+                                    element_description = "Élément non trouvé"
+                        elif isinstance(valeur, dict):
+                            valeurs = valeur
+                            
+                            # Remplacer les valeurs null par "-"
+                            for key in valeurs:
+                                if valeurs[key] is None:
+                                    valeurs[key] = "-"
+                
+                # Si nous n'avons pas encore récupéré la description de l'élément via le couplage
+                if element_description == "Non affecté" and element_code != "Inconnu":
+                    try:
+                        element_description = Element.objects.get(codeElement=element_code).description
+                    except Element.DoesNotExist:
+                        element_description = "Élément non trouvé"
+
+                # Ajouter les données traitées dans la liste
+                data.append({
+                    "element": element_description,
+                    "ressource": ressource_nom,
+                    "valeurs": valeurs
+                })
+
         # Récupération des objectifs pour comparaison si nécessaire
         objectifs = expression.get("objectifs", {})
-        
+
         # Génération du HTML
         html_string = render_to_string('solution_pdf.html', {
             'solution': solution,
             'data': data,
-            'noms_attributs': noms_attributs,  # Tous les noms d'attributs extraits de valeurs
+            'noms_attributs': noms_attributs,
             'objectifs': objectifs
         })
-        
+
         # Création du PDF
         response = HttpResponse(content_type='application/pdf')
         response['Content-Disposition'] = f'attachment; filename="solution_{solution_id}.pdf"'
-        
+
         HTML(string=html_string).write_pdf(response)
         return response
+
+    except Solution.DoesNotExist:
+        return JsonResponse({"error": "Solution non trouvée"}, status=404)
+    except Exception as e:
+        return JsonResponse({"error": f"Erreur serveur : {str(e)}"}, status=500)
+    
+         
 def first_three_solutions_data(request):
     try:
         # Récupérer les 3 premières solutions
@@ -1129,3 +1259,11 @@ def first_three_solutions_data(request):
     
     except Exception as e:
         return JsonResponse({"error": str(e)}, status=500)
+    
+    
+def is_json(my_str):
+    try:
+        json_obj = json.loads(my_str)
+        return isinstance(json_obj, (dict, list))  # Vérifie si c'est bien un JSON valide
+    except json.JSONDecodeError:
+        return False

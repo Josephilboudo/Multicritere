@@ -100,14 +100,20 @@
                     <div class="col-12">
                       <h2>Liste des contraintes</h2>
                       
-                      <!-- Bouton pour ouvrir la modal d'ajout -->
-                      <button type="button" class="btn btn-primary btn-sm mb-3" data-bs-toggle="modal" data-bs-target="#contrainteModal" >
-                        <i class="fas fa-plus"></i>
-                      </button>
-                      <button id="btn-verifier" class="btn btn-primary">Vérifier</button>
-                      <p id="message"></p>
-                      <!--Bouton pour generer pop-->
-                      <button id="generateButton" class="btn btn-success">Générer la population</button>
+                      <div class="d-flex justify-content-between align-items-center mb-3">
+                        <!-- Bouton à gauche -->
+                        <div>
+                          <button type="button" class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#contrainteModal">
+                            <i class="fas fa-plus"></i>
+                          </button>
+                        </div>
+                        
+                        <!-- Boutons à droite -->
+                        <div>
+                          <button id="btn-verifier" class="btn btn-primary">Vérifier</button>
+                          <button id="generateButton" class="btn btn-success">Générer la population</button>
+                        </div>
+                      </div>
                       <!-- Tableau des objectifs -->
                       <div id="element-list-container">
                         <table class="table table-striped">
