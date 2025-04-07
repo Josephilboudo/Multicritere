@@ -1088,156 +1088,118 @@ def solution_details(request, solution_id):
     except Exception as e:
         return JsonResponse({"error": f"Erreur serveur : {str(e)}"}, status=500)     
 
-
-
 def generate_pdf(request, solution_id):
     try:
-        # Récupérer la solution
+        # Récupération de la solution
         solution = Solution.objects.get(idSolution=solution_id)
-        expression = json.loads(solution.expression)
-
-        # Préparation des données
-        data = []
+                
+        # Vérification et conversion de l'expression JSON
+        try:
+            expression = json.loads(solution.expression)  # Charger l'expression JSON
+        except json.JSONDecodeError:
+            return JsonResponse({"error": "Expression JSON invalide"}, status=400)
         
-        # Ensemble pour stocker tous les noms d'attributs uniques
-        tous_noms_attributs = set()
-
-        # Première passe pour collecter tous les noms d'attributs
-        if 'data' in expression and isinstance(expression['data'], list):
-            for item in expression['data']:
-                # Si l'item est une chaîne, on ignore pour cette première passe
-                if not isinstance(item, dict):
+        # Structure identique à la fonction solution_details qui fonctionne
+        data = []
+                
+        # Vérification que 'data' est une liste
+        if not isinstance(expression.get('data'), list):
+            return JsonResponse({"error": "Format incorrect : 'data' doit être une liste"}, status=400)
+        
+        # Créer un format de données plat comme dans solution_details
+        flat_data = []
+        all_keys = set(["element", "ressource"])  # On ajoute déjà ces clés
+        
+        for item in expression['data']:
+            if isinstance(item, str):
+                try:
+                    item = json.loads(item)  # Convertir la chaîne JSON en dictionnaire
+                except json.JSONDecodeError:
+                    # Si item est une chaîne non JSON, on suppose que c'est un codeElement
+                    try:
+                        element = Element.objects.get(codeElement=item)  # Utilisation de codeElement
+                        flat_data.append({"element": element.description, "ressource": "Non affecté"})
+                    except Element.DoesNotExist:
+                        flat_data.append({"element": "Inconnu", "ressource": "Non affecté"})
                     continue
-
-                # Traitement de la valeur pour collecter les attributs
-                if 'valeur' in item:
-                    valeur = item['valeur']
-                    if isinstance(valeur, str):
-                        try:
-                            # Essayer de parser comme JSON
-                            valeurs_dict = json.loads(valeur)
-                            if isinstance(valeurs_dict, dict):
-                                for cle in valeurs_dict.keys():
-                                    tous_noms_attributs.add(cle)
-                        except json.JSONDecodeError:
-                            # Si c'est juste un code élément (non affecté)
-                            tous_noms_attributs.add("status")
-                            tous_noms_attributs.add("codeElement")
-                    elif isinstance(valeur, dict):
-                        for cle in valeur.keys():
-                            tous_noms_attributs.add(cle)
-                    else:
-                        tous_noms_attributs.add("status")
-
+            
+            if not isinstance(item, dict):
+                continue
+            
+            # Récupérer le couplage
+            couplage_id = item.get('couplage')
+            if couplage_id == "Non affecté" or not couplage_id:
+                element_nom = item.get("element", "Non affecté")  # Garder l'élément s'il existe
+                ressource_nom = "Non affecté"
+            else:
+                try:
+                    couplage = Couplage.objects.get(id=couplage_id)
+                    element_nom = couplage.element.description  # Nom de l'élément
+                    ressource_nom = couplage.ressource.description  # Nom de la ressource
+                except Couplage.DoesNotExist:
+                    element_nom = "Inconnu"
+                    ressource_nom = "Non affecté"
+            
+            # Récupérer et convertir la valeur
+            try:
+                valeur_str = item.get('valeur', '{}')
+                if isinstance(valeur_str, str):
+                    valeurs = json.loads(valeur_str) if valeur_str.strip() else {}
+                else:
+                    valeurs = valeur_str if isinstance(valeur_str, dict) else {}
+            except json.JSONDecodeError:
+                valeurs = {}
+            
+            # S'assurer que valeurs est bien un dictionnaire
+            if not isinstance(valeurs, dict):
+                valeurs = {}
+            
+            # Construire la ligne du tableau comme dans solution_details
+            row = {
+                "element": element_nom,
+                "ressource": ressource_nom,
+            }
+            
+            # Ajouter directement les valeurs au niveau principal
+            for key, value in valeurs.items():
+                if value is None:
+                    value = "-"
+                row[key] = value
+                all_keys.add(key)  # Collecter les noms des colonnes
+            
+            flat_data.append(row)
+        
         # Convertir l'ensemble en liste pour l'ordre
-        noms_attributs = sorted(list(tous_noms_attributs))
-
-        # Seconde passe pour collecter les données
-        if 'data' in expression and isinstance(expression['data'], list):
-            for item in expression['data']:
-                # Initialisation des valeurs par défaut
-                element_code = "Inconnu"
-                ressource_nom = "Inconnu"
-                element_description = "Non affecté"
-                valeurs = {"status": "non affecté"}
-                
-                # Traitement différent selon le type de l'item
-                if isinstance(item, str):
-                    # Si l'item est juste une chaîne, c'est probablement un code élément
-                    code_element = item
-                    valeurs = {"status": "non affecté", "codeElement": code_element}
-                    
-                    # Récupérer la description de l'élément à partir du code
-                    try:
-                        element_obj = Element.objects.get(codeElement=code_element)
-                        element_description = element_obj.description
-                        element_code = code_element
-                    except Element.DoesNotExist:
-                        element_description = "Élément non trouvé"
-                
-                elif isinstance(item, dict):
-                    # Traitement du couplage
-                    if 'couplage' in item:
-                        couplage_id = item['couplage']
-                        try:
-                            couplage = Couplage.objects.get(id=couplage_id)
-                            element_code = couplage.element.codeElement
-                            ressource_nom = couplage.ressource.description
-                        except Couplage.DoesNotExist:
-                            pass
-                    
-                    # Traitement de la valeur
-                    if 'valeur' in item:
-                        valeur = item['valeur']
-                        if isinstance(valeur, str):
-                            try:
-                                # Essayer de parser comme JSON
-                                valeurs_dict = json.loads(valeur)
-                                if isinstance(valeurs_dict, dict):
-                                    valeurs = valeurs_dict
-                                    
-                                    # Remplacer les valeurs null par "-"
-                                    for key in valeurs:
-                                        if valeurs[key] is None:
-                                            valeurs[key] = "-"
-                            except json.JSONDecodeError:
-                                # Si ce n'est pas un JSON valide, c'est probablement juste le code de l'élément
-                                code_element = valeur
-                                valeurs = {"status": "non affecté", "codeElement": code_element}
-                                
-                                # Récupérer la description de l'élément à partir du code
-                                try:
-                                    element_obj = Element.objects.get(codeElement=code_element)
-                                    element_description = element_obj.description
-                                    element_code = code_element
-                                except Element.DoesNotExist:
-                                    element_description = "Élément non trouvé"
-                        elif isinstance(valeur, dict):
-                            valeurs = valeur
-                            
-                            # Remplacer les valeurs null par "-"
-                            for key in valeurs:
-                                if valeurs[key] is None:
-                                    valeurs[key] = "-"
-                
-                # Si nous n'avons pas encore récupéré la description de l'élément via le couplage
-                if element_description == "Non affecté" and element_code != "Inconnu":
-                    try:
-                        element_description = Element.objects.get(codeElement=element_code).description
-                    except Element.DoesNotExist:
-                        element_description = "Élément non trouvé"
-
-                # Ajouter les données traitées dans la liste
-                data.append({
-                    "element": element_description,
-                    "ressource": ressource_nom,
-                    "valeurs": valeurs
-                })
-
+        noms_attributs = sorted(list(all_keys - {"element", "ressource"}))  # Exclure element et ressource
+        
         # Récupération des objectifs pour comparaison si nécessaire
         objectifs = expression.get("objectifs", {})
-
-        # Génération du HTML
-        html_string = render_to_string('solution_pdf.html', {
+        
+        # Modifier le template pour qu'il utilise cette structure
+        # Au lieu d'accéder à item.valeurs[nom], on accède directement à item[nom]
+        nouvelle_structure = {
             'solution': solution,
-            'data': data,
+            'data': flat_data,
             'noms_attributs': noms_attributs,
             'objectifs': objectifs
-        })
-
+        }
+        
+        # Génération du HTML modifié
+        html_string = render_to_string('solution_pdf.html', nouvelle_structure)
+        
         # Création du PDF
         response = HttpResponse(content_type='application/pdf')
         response['Content-Disposition'] = f'attachment; filename="solution_{solution_id}.pdf"'
-
+        
         HTML(string=html_string).write_pdf(response)
         return response
-
+        
     except Solution.DoesNotExist:
         return JsonResponse({"error": "Solution non trouvée"}, status=404)
     except Exception as e:
         return JsonResponse({"error": f"Erreur serveur : {str(e)}"}, status=500)
-    
-         
+
+        
 def first_three_solutions_data(request):
     try:
         # Récupérer les 3 premières solutions

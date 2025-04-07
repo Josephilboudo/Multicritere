@@ -1,4 +1,5 @@
 {% load custom_filters %}
+{% load pdf_filters%}
 <!DOCTYPE html>
 <html lang="fr">
 <head>
@@ -144,8 +145,8 @@
         
         /* Mise en page orientation paysage pour PDF */
         @page {
-            size: landscape;
-            margin: 8mm;
+            size: A4 portrait;
+            margin: 20mm 12mm 15mm 25mm; /* haut, droite, bas, gauche (reliure à gauche) */
         }
         
         @media print {
@@ -154,7 +155,16 @@
                 padding: 0;
                 width: 100%;
             }
-            
+        
+            .container {
+                padding: 0;
+                margin: 0;
+            }
+        
+            @page {
+                size: A4 portrait;
+                margin: 20mm 12mm 15mm 25mm;
+            }    
             .container {
                 padding: 8px;
                 width: 100%;
@@ -237,18 +247,10 @@
                                 <td>{{ item.ressource }}</td>
                                 {% for nom in noms_attributs %}
                                     <td>
-                                        {% if item.valeurs %}
-                                            {% if item.valeurs|get_item:nom %}
-                                                {{ item.valeurs|get_item:nom }}
-                                            {% else %}
-                                                Non affecté
-                                            {% endif %}
+                                        {% if nom in item %}
+                                            {{ item|get_dict_item:nom }}
                                         {% else %}
-                                            {% if item.element == "Inconnu" %}
-                                                {{ item.element }}
-                                            {% else %}
-                                                Non affecté
-                                            {% endif %}
+                                            Non affecté
                                         {% endif %}
                                     </td>
                                 {% endfor %}
@@ -256,7 +258,6 @@
                         {% endfor %}
                     </tbody>
                 </table>
-                                
             </div>
         </div>
         
