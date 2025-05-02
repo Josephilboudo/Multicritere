@@ -527,7 +527,8 @@
 function forceCloseModal(modalId) {
   // Close the modal using Bootstrap API
   const modalElement = document.getElementById(modalId);
-  const modalInstance = bootstrap.Modal.getInstance(modalElement);
+  const modalInstance = $(modalElement).data('bs.modal');
+
   
   if (modalInstance) {
       modalInstance.hide();
@@ -593,7 +594,8 @@ function forceCloseModal(modalId) {
         const toastBody = successToast.querySelector('.toast-body');
         toastBody.textContent = message;
 
-        const toast = new bootstrap.Toast(successToast);
+        const toast = new bootstrap.Toast(successToast, {
+          delay: 8000 });
         toast.show();
     }
 
@@ -734,4 +736,3 @@ function openModal(solutionId) {
 </body>
 
 </html>
-

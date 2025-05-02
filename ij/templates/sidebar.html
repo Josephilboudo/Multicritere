@@ -41,49 +41,26 @@
             <span class="menu-title">Objectif</span>
           </a>
       <li class="nav-item">
-        <a class="nav-link" data-toggle="collapse" href="{%url 'connect_database' %}" aria-expanded="false" aria-controls="icons">
-          <i class="icon-contract menu-icon"></i>
-          <span class="menu-title">Icons</span>
-          <i class="menu-arrow"></i>
-        </a>
-        <div class="collapse" id="icons">
-          <ul class="nav flex-column sub-menu">
-            <li class="nav-item"> <a class="nav-link" href="pages/icons/mdi.html">Mdi icons</a></li>
-          </ul>
-        </div>
-      </li>
-      <li class="nav-item">
         <a class="nav-link" data-toggle="collapse" href="#auth" aria-expanded="false" aria-controls="auth">
           <i class="icon-head menu-icon"></i>
-          <span class="menu-title">User Pages</span>
+          <span class="menu-title">Connexion</span>
           <i class="menu-arrow"></i>
         </a>
         <div class="collapse" id="auth">
           <ul class="nav flex-column sub-menu">
-            <li class="nav-item"> <a class="nav-link" href="{%url 'crit'%}"> Login </a></li>
+            <li class="nav-item"> <a class="nav-link" href="{%url 'login'%}"> Login </a></li>
             <li class="nav-item"> <a class="nav-link" href="{%url 'register'%}"> Register </a></li>
-            <li class="nav-item"> <a class="nav-link" href="{%url 'logout'%}"> Logout </a></li>
+            
+            <li class="nav-item">
+              <form method="post" action="{% url 'logout' %}" style="display:inline;">
+                {% csrf_token %}
+                <button type="submit" class="nav-link btn btn-link" style="padding: 0; margin: 0; border: none; background: none;">
+                  Logout
+                </button>
+              </form>
+            </li>
           </ul>
         </div>
-      </li>
-      <li class="nav-item">
-        <a class="nav-link" data-toggle="collapse" href="#error" aria-expanded="false" aria-controls="error">
-          <i class="icon-ban menu-icon"></i>
-          <span class="menu-title">Error pages</span>
-          <i class="menu-arrow"></i>
-        </a>
-        <div class="collapse" id="error">
-          <ul class="nav flex-column sub-menu">
-            <li class="nav-item"> <a class="nav-link" href="pages/samples/error-404.html"> 404 </a></li>
-            <li class="nav-item"> <a class="nav-link" href="pages/samples/error-500.html"> 500 </a></li>
-          </ul>
-        </div>
-      </li>
-      <li class="nav-item">
-        <a class="nav-link" href="pages/documentation/documentation.html">
-          <i class="icon-paper menu-icon"></i>
-          <span class="menu-title">Documentation</span>
-        </a>
       </li>
     </ul>
   </nav>
