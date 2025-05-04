@@ -319,7 +319,7 @@ def import_elements(request):
   
     
 #test
-def get_table_columns(request):
+#def get_table_columns(request):
     print("Vue get_table_columns appelée")  # Log de débogage
     if request.method == "POST":
         try:
@@ -335,7 +335,8 @@ def get_table_columns(request):
                 }, status=400)
 
             # Récupérer les identifiants de la session
-            credentials = request.session.get('db_credentials')
+            credentials = request.session.get('db_credentials') or request.session.get('external_db_config')
+            print(f"db_name: {db_name}, name: {name}, password: {password}")
             if not credentials:
                 return JsonResponse({
                     "status": "error", 
@@ -371,6 +372,67 @@ def get_table_columns(request):
         "status": "error",
         "message": "Méthode non autorisée"
     }, status=405)
+
+def get_table_columns(request):
+    print("Vue get_table_columns appelée")  # Log de débogage
+    if request.method == "POST":
+        try:
+            data = json.loads(request.body)
+            table_name = data.get("tableName")
+            print(f"Nom de la table reçu : {table_name}")
+
+            if not table_name:
+                return JsonResponse({
+                    "status": "error", 
+                    "message": "Le nom de la table est requis"
+                }, status=400)
+
+            # Tenter de récupérer les identifiants de la session
+            credentials = request.session.get('db_credentials') or request.session.get('external_db_config')
+            if not credentials:
+                return JsonResponse({
+                    "status": "error", 
+                    "message": "Aucune connexion établie. Veuillez vous connecter d'abord."
+                }, status=401)
+
+            # Extraire les infos depuis db_credentials (format personnalisé) ou external_db_config (format Django)
+            db_name = credentials.get('db_name') or credentials.get('NAME')
+            name = credentials.get('name') or credentials.get('USER')
+            password = credentials.get('password') or credentials.get('PASSWORD')
+
+            print(f"db_name: {db_name}, name: {name}, password: {password}")
+
+            if not all([db_name, name, password]):
+                return JsonResponse({
+                    "status": "error",
+                    "message": "Identifiants incomplets dans la session."
+                }, status=400)
+
+            # Établir la connexion
+            connection = get_dynamic_connection(db_name, name, password)
+
+            with connection.cursor() as cursor:
+                cursor.execute(f"DESCRIBE `{table_name}`;")
+                columns = [row[0] for row in cursor.fetchall()]
+                print(f"Colonnes récupérées : {columns}")
+
+                return JsonResponse({
+                    "status": "success",
+                    "columns": columns,
+                })
+
+        except Exception as e:
+            print(f"Erreur dans get_table_columns : {e}")
+            return JsonResponse({
+                "status": "error",
+                "message": str(e)
+            }, status=500)
+
+    return JsonResponse({
+        "status": "error",
+        "message": "Méthode non autorisée"
+    }, status=405)
+
 
 def import_data(request):
     print("Vue import_data appelée")  # Log de débogage
@@ -491,6 +553,7 @@ def connect_to_external_db(request):
 
             return JsonResponse({"status": "success", "message": "Connexion réussie"})
         except Exception as e:
+            print("Erreur dans connect_to_external_db :", e)
             return JsonResponse({"status": "error", "message": str(e)}, status=500)
     return JsonResponse({"status": "error", "message": "Méthode non autorisée"}, status=405)
 #ressource
