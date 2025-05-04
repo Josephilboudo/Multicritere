@@ -25,7 +25,6 @@
               <div class="row">
                 <div class="col-12 col-xl-8 mb-4 mb-xl-0">
                   <h3 class="font-weight-bold">Contrainte</h3>
-                  <h6 class="font-weight-normal mb-0">All systems are running smoothly! You have <span class="text-primary">3 unread alerts!</span></h6>
                 </div>
                 <div class="col-12 col-xl-4">
                   <div class="justify-content-end d-flex"></div>
@@ -100,7 +99,7 @@
                         <!-- Boutons à droite -->
                         <div>
                           <button id="btn-verifier" class="btn btn-primary">Vérifier</button>
-                          <button id="generateButton" class="btn btn-success">Générer la population</button>
+                          <button id="generateButton" class="btn btn-success">Générer les solutions</button>
                         </div>
                       </div>
                       <!-- Tableau des objectifs -->
@@ -454,6 +453,13 @@ document.getElementById("contrainteForm").addEventListener("submit", function(ev
   }
 });
 document.getElementById("btn-verifier").addEventListener("click", function() {
+  const button = this;
+  const messageElement = document.getElementById("message");
+
+  // Désactiver le bouton et changer le texte
+  button.disabled = true;
+  button.textContent = "Vérification en cours...";
+
   fetch("{% url 'verifier_contraintes' %}", {
       method: "POST",
       headers: {
@@ -464,35 +470,55 @@ document.getElementById("btn-verifier").addEventListener("click", function() {
   })
   .then(response => response.json())
   .then(data => {
-      document.getElementById("message").innerText = data.message;
+      messageElement.innerText = data.message;
   })
-  .catch(error => console.error("Erreur :", error));
+  .catch(error => {
+      console.error("Erreur :", error);
+      messageElement.innerText = "Une erreur s'est produite : " + error.message;
+  })
+  .finally(() => {
+      // Réactiver le bouton et restaurer le texte initial
+      alert("Verification realisee avec succes");
+      button.disabled = false;
+      button.textContent = "Vérifier";
+  });
 });
 
 //a supprimer apres concerne generation de population
 document.getElementById("generateButton").addEventListener("click", function() {
+  const button = this;
+  const originalText = button.textContent;
+
+  // Désactiver le bouton et afficher un message temporaire
+  button.disabled = true;
+  button.textContent = "Génération en cours...";
+
   // Faire une requête AJAX POST
   fetch("{% url 'generer_population' %}", {
     method: "POST",
     headers: {
       'Content-Type': 'application/json',
-      'X-CSRFToken': '{{ csrf_token }}',  // Assurez-vous d'inclure le token CSRF
+      'X-CSRFToken': '{{ csrf_token }}',
     },
     body: JSON.stringify({})
   })
   .then(response => response.json())
   .then(data => {
     if (data.message) {
-      // Afficher un toast de notification
       showToast('Succès', data.message, 'success');
     }
-    // Vous pouvez également manipuler la population générée ici si nécessaire
   })
   .catch(error => {
     console.error('Erreur:', error);
     showToast('Erreur', 'Impossible de générer la population.', 'error');
+  })
+  .finally(() => {
+    // Réactiver le bouton et remettre le texte initial
+    button.disabled = false;
+    button.textContent = originalText;
   });
 });
+
 document.addEventListener('DOMContentLoaded', function() {
   // Initialiser les toasts si jQuery est utilisé (Bootstrap 4)
   try {

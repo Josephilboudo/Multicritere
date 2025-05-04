@@ -64,24 +64,58 @@ def home(request):
         
     })
 def ressource(request):
+    total_elements = Element.objects.count()
+    total_ressources = Ressource.objects.count()
+    total_criteres = Critere.objects.count()
+    total_contraintes = Contrainte.objects.count()
     ressources= Ressource.objects.all().order_by('codeRessource')
-    return render(request, 'ressource.html', {'ressources': ressources})
+    return render(request, 'ressource.html', {'ressources': ressources,
+        'total_elements': total_elements,
+        'total_ressources': total_ressources,
+        'total_criteres': total_criteres,
+        'total_contraintes': total_contraintes
+    })
 
 def crit(request):
     return render(request, 'crit.html')
 
 def element(request):
+    total_elements = Element.objects.count()
+    total_ressources = Ressource.objects.count()
+    total_criteres = Critere.objects.count()
+    total_contraintes = Contrainte.objects.count()
     elements = Element.objects.all().order_by('codeElement')
-    return render(request, 'element.html', {'elements': elements})
+    return render(request, 'element.html', {'elements': elements,
+        'total_elements': total_elements,
+        'total_ressources': total_ressources,
+        'total_criteres': total_criteres,
+        'total_contraintes': total_contraintes})
 
 def critere(request):
+    total_elements = Element.objects.count()
+    total_ressources = Ressource.objects.count()
+    total_criteres = Critere.objects.count()
+    total_contraintes = Contrainte.objects.count()
     criteres = Critere.objects.all()
-    return render(request, 'critere.html', {'criteres':criteres})
+    return render(request, 'critere.html', {'criteres':criteres,
+        'total_elements': total_elements,
+        'total_ressources': total_ressources,
+        'total_criteres': total_criteres,
+        'total_contraintes': total_contraintes})
 
 def contrainte(request):
     contraintes = Contrainte.objects.all()
     criteres = Critere.objects.all()
-    return render(request, 'contrainte.html', {'contraintes': contraintes, 'criteres': criteres})
+    total_elements = Element.objects.count()
+    total_ressources = Ressource.objects.count()
+    total_criteres = Critere.objects.count()
+    total_contraintes = Contrainte.objects.count()
+    return render(request, 'contrainte.html', {'contraintes': contraintes,
+        'criteres': criteres,
+        'total_elements': total_elements,
+        'total_ressources': total_ressources,
+        'total_criteres': total_criteres,
+        'total_contraintes': total_contraintes})
 
 
 def couplage(request):
